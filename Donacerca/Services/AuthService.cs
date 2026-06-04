@@ -1,19 +1,16 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using Google.Cloud.Firestore;
-using Donacerca.DTOs;
-using Donacerca.Models;
 using System.Security.Cryptography;
 using System.Text;
+using Donacerca.DTOs;
+using Donacerca.Models;
+using Google.Cloud.Firestore;
 using Microsoft.IdentityModel.Tokens;
-using Donacerca.Services;
-
 
 namespace Donacerca.Services;
 
 public class AuthService
 {
-    // Maneja lo relacionado a registro e inicio de sesion
     private readonly FirebaseService _firebaseService;
     private readonly IConfiguration _configuration;
 
@@ -25,55 +22,73 @@ public class AuthService
 
     public async Task<User> Register(RegisterDto dto)
     {
-        // Primero verificamos que no existe un usuario con ese correo
         var collection = _firebaseService.GetCollection("users");
+
+        // Verificar email duplicado
         var existing = await collection
             .WhereEqualTo("Email", dto.Email)
             .GetSnapshotAsync();
 
         if (existing.Count > 0)
             throw new Exception("Ya existe un usuario con ese correo");
-        
-        // Creamos el objeto con la contraseña hasheada
+
+        // Validar roles permitidos
+        var rolesPermitidos = new[] { "donor", "receiver" };
+        var rolesValidos = dto.Roles
+            .Where(r => rolesPermitidos.Contains(r))
+            .ToList();
+
+        if (rolesValidos.Count == 0)
+            rolesValidos.Add("receiver");
 
         var user = new User
         {
             Id = Guid.NewGuid().ToString(),
             FullName = dto.FullName,
             Email = dto.Email,
-            PasswordHash = HashPasword(dto.Password),
-            Role = "user",
-            CreatedAt =  DateTime.UtcNow
+            PasswordHash = HashPassword(dto.Password),
+            Zone = dto.Zone,
+            Roles = rolesValidos,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
         };
-        
-        // Guardamos En FS usando el Id como nombre del documento
+
         await collection.Document(user.Id).SetAsync(new Dictionary<string, object>
         {
             { "Id", user.Id },
             { "FullName", user.FullName },
             { "Email", user.Email },
             { "PasswordHash", user.PasswordHash },
-            { "Role", user.Role },
+            { "Zone", user.Zone },
+            { "Roles", user.Roles },
+            { "IsActive", user.IsActive },
             { "CreatedAt", user.CreatedAt }
         });
+
         return user;
     }
 
-    public async Task<string> Login(LoginDto dto)
+    public async Task<object> Login(LoginDto dto)
     {
-        // Buscar al usuario por correo en FS
         var collection = _firebaseService.GetCollection("users");
         var snapshot = await collection
             .WhereEqualTo("Email", dto.Email)
             .GetSnapshotAsync();
-        
-        if(snapshot.Count == 0)
-            throw new Exception("No existe ningun usuario con esa credencial");
-        
-        // Si lo encontramos mapeamos manualmente el documento a nuestro objeto
-        // Usamos ToDictionary()
+
+        if (snapshot.Count == 0)
+            throw new Exception("No existe ningún usuario con esas credenciales");
+
         var doc = snapshot.Documents[0];
         var data = doc.ToDictionary();
+
+        // Verificar que la cuenta esté activa
+        if (data.ContainsKey("IsActive") && !(bool)data["IsActive"])
+            throw new Exception("Esta cuenta está desactivada");
+
+        // Mapear roles (Firestore los devuelve como List<object>)
+        var roles = data.ContainsKey("Roles")
+            ? ((List<object>)data["Roles"]).Select(r => r.ToString()!).ToList()
+            : new List<string> { "receiver" };
 
         var user = new User
         {
@@ -81,55 +96,68 @@ public class AuthService
             FullName = data["FullName"].ToString()!,
             Email = data["Email"].ToString()!,
             PasswordHash = data["PasswordHash"].ToString()!,
-            Role = data["Role"].ToString()!,
-            // Int64, necesitamos convertirlo
-            CreatedAt = ((Google.Cloud.Firestore.Timestamp)data["CreatedAt"]).ToDateTime()  
+            Zone = data.ContainsKey("Zone") ? data["Zone"].ToString()! : "",
+            Roles = roles,
+            IsActive = data.ContainsKey("IsActive") && (bool)data["IsActive"],
+            CreatedAt = ((Timestamp)data["CreatedAt"]).ToDateTime()
         };
-        
-        // Verificar si la contraseña esta hasheada
-        if(!VerifyPassword(dto.Password, user.PasswordHash))
-            throw new Exception("Password incorrecto");
-        
-        // Se completo exitosamente, generamos un token JWT
-        return GenerateToken(user);
 
+        if (!VerifyPassword(dto.Password, user.PasswordHash))
+            throw new Exception("Contraseña incorrecta");
+
+        var token = GenerateToken(user);
+
+        // Devolvemos token + info básica del usuario para que el frontend
+        // sepa qué panel mostrar según los roles
+        return new
+        {
+            Token = token,
+            User = new
+            {
+                user.Id,
+                user.FullName,
+                user.Email,
+                user.Zone,
+                user.Roles
+            }
+        };
     }
 
     private string GenerateToken(User user)
     {
-        // El token lleva cierta informacion, Id, Email y Role del usuario que hizo login
-        // Para proteccion de los endpoints, se sabe quien los esta llamando
-        var claims = new[]
+        // Un Claim por cada rol — así [Authorize(Roles="donor")] funciona correctamente
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role)
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.FullName),
         };
+
+        // Agregar un claim de rol por cada rol del usuario
+        foreach (var role in user.Roles)
+            claims.Add(new Claim(ClaimTypes.Role, role));
 
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-                
-                var token = new JwtSecurityToken(
-                        
-                        issuer: _configuration["Jwt:Issuer"], //Quien lo genera, nuestro token lo genera la app
-                        audience: _configuration["Jwt:Issuer"], // Para quien lo genera, clientes / front-end
-                        claims: claims, // Estos son los datos del usuario
-                        expires: DateTime.UtcNow.AddHours(8), //Tiempo de vida del token
-                        signingCredentials: creds // Firma de seguridad
-                        );
-                    return new JwtSecurityTokenHandler().WriteToken(token);
+
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"], // ← bug corregido
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(8),
+            signingCredentials: creds
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    private bool VerifyPassword(string dtoPassword, string userPasswordHash)
-    {
-        return HashPasword(dtoPassword) == userPasswordHash;
-    }
+    private static bool VerifyPassword(string password, string hash) =>
+        HashPassword(password) == hash;
 
-    // Para encriptar la contraseña
-    private string HashPasword(string password)
+    private static string HashPassword(string password)
     {
-        // SHA256 - tipo de encriptacion
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
         return Convert.ToBase64String(bytes);
     }

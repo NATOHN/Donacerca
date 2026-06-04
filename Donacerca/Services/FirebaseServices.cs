@@ -27,4 +27,9 @@ public class FirebaseService
     {
         return _firestoreDb.Collection(collectionName);
     }
+    
+    public FirestoreDb GetFirestoreDb()
+    {
+        return _firestoreDb;
+    }
 }

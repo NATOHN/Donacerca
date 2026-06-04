@@ -13,7 +13,11 @@ builder.Services.AddSingleton<FirebaseService>();
 
 // AddScoped crea una instancia nueva por cada peticion HTTP que llegue
 builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<ExperimentService>();
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<DonationService>();
+builder.Services.AddScoped<RequestService>();
+builder.Services.AddScoped<DeliveryService>();
+builder.Services.AddScoped<ReportService>();
 
 builder.Services.AddControllers();
 
