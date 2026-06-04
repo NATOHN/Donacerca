@@ -1,4 +1,5 @@
 Config/*
+.idea/
 appsettings.json
 appsettings.Development.json
 
