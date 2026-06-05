@@ -3,6 +3,8 @@ using Microsoft.IdentityModel.Tokens;
 using Donacerca.Services;
 using Scalar.AspNetCore;
 using System.Text;
+using Donacerca.Middleware;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,8 +20,29 @@ builder.Services.AddScoped<DonationService>();
 builder.Services.AddScoped<RequestService>();
 builder.Services.AddScoped<DeliveryService>();
 builder.Services.AddScoped<ReportService>();
+builder.Services.AddScoped<NotificationService>();
+
 
 builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                );
+
+            return new BadRequestObjectResult(new
+            {
+                message = "Datos inválidos",
+                errors
+            });
+        };
+    });
 
 // AddOpenApi registrar el generador de documentacion que Scalar va a leer
 // !existe Scalar no va poder reconocer los endpoints que existen ni como los definieron
@@ -51,6 +74,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
     };
 });
+
+builder.Services.AddHostedService<ExpiredPostsJob>();
 
 // AddAuthorization, habilitar el uso del [Authorize] en los controllers
 builder.Services.AddAuthorization();
@@ -86,6 +111,8 @@ if (app.Environment.IsDevelopment())
             });
     });
 }
+
+app.UseMiddleware<ErrorHandlingMiddleware>();
 
 // CORS debe ir antes de Authentication y Authorization
 // Las peticiones del frotend se rechazan antes de llegar al auth
