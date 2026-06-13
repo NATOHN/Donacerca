@@ -13,7 +13,6 @@ public class DeliveryService
         _firebase = firebase;
     }
 
-    // El donante registra los datos de entrega
     public async Task<DeliveryRecord> CreateDeliveryAsync(CreateDeliveryDto dto, string donorId)
     {
         var postSnap = await _firebase.GetCollection("donationPosts").Document(dto.PostId).GetSnapshotAsync();
@@ -41,7 +40,6 @@ public class DeliveryService
         return record;
     }
 
-    // El donante confirma que entregó
     public async Task ConfirmByDonorAsync(string postId, string donorId)
     {
         var record = await GetByPostIdAsync(postId)
@@ -53,12 +51,10 @@ public class DeliveryService
         await _firebase.GetCollection("deliveryRecords").Document(record.Id)
             .UpdateAsync(new Dictionary<string, object> { { "ConfirmedByDonor", true } });
 
-        // Actualizar estado del post a "entregado"
         await _firebase.GetCollection("donationPosts").Document(postId)
             .UpdateAsync(new Dictionary<string, object> { { "Status", "entregado" } });
     }
 
-    // El receptor confirma que recibió (solo si el donante ya confirmó)
     public async Task ConfirmByReceiverAsync(string postId, string receiverId)
     {
         var record = await GetByPostIdAsync(postId)
@@ -70,7 +66,6 @@ public class DeliveryService
         if (!record.ConfirmedByDonor)
             throw new InvalidOperationException("El donante aún no ha confirmado la entrega");
 
-        // Cierre inmutable: confirmación doble completa
         await _firebase.GetCollection("deliveryRecords").Document(record.Id)
             .UpdateAsync(new Dictionary<string, object>
             {
@@ -78,7 +73,6 @@ public class DeliveryService
                 { "CompletedAt", DateTime.UtcNow }
             });
 
-        // Cerrar la publicación definitivamente
         await _firebase.GetCollection("donationPosts").Document(postId)
             .UpdateAsync(new Dictionary<string, object>
             {
@@ -107,6 +101,12 @@ public class DeliveryService
     private static DeliveryRecord MapRecord(DocumentSnapshot doc)
     {
         var d = doc.ToDictionary();
+
+        // CompletedAt es null hasta que el receptor confirma
+        DateTime? completedAt = null;
+        if (d.ContainsKey("CompletedAt") && d["CompletedAt"] is Timestamp ts)
+            completedAt = ts.ToDateTime();
+
         return new DeliveryRecord
         {
             Id = d["Id"].ToString()!,
@@ -115,12 +115,11 @@ public class DeliveryService
             ReceiverId = d["ReceiverId"].ToString()!,
             ItemName = d["ItemName"].ToString()!,
             CategoryId = d["CategoryId"].ToString()!,
-            DeliveryDate = ((Google.Cloud.Firestore.Timestamp)d["DeliveryDate"]).ToDateTime(),
+            DeliveryDate = ((Timestamp)d["DeliveryDate"]).ToDateTime(),
             DeliveryLocation = d["DeliveryLocation"].ToString()!,
             ConfirmedByDonor = (bool)d["ConfirmedByDonor"],
             ConfirmedByReceiver = (bool)d["ConfirmedByReceiver"],
-            CompletedAt = d.ContainsKey("CompletedAt") && d["CompletedAt"] != null
-                ? ((Google.Cloud.Firestore.Timestamp)d["CompletedAt"]).ToDateTime() : null
+            CompletedAt = completedAt
         };
     }
 
@@ -135,7 +134,7 @@ public class DeliveryService
         { "DeliveryDate", r.DeliveryDate },
         { "DeliveryLocation", r.DeliveryLocation },
         { "ConfirmedByDonor", r.ConfirmedByDonor },
-        { "ConfirmedByReceiver", r.ConfirmedByReceiver },
-        { "CompletedAt", r.CompletedAt ?? (object)string.Empty }
+        { "ConfirmedByReceiver", r.ConfirmedByReceiver }
+        // CompletedAt NO se guarda al crear — se agrega solo cuando el receptor confirma
     };
 }

@@ -6,6 +6,8 @@ using Donacerca.DTOs;
 using Donacerca.Models;
 using Google.Cloud.Firestore;
 using Microsoft.IdentityModel.Tokens;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 
 namespace Donacerca.Services;
 
@@ -24,7 +26,6 @@ public class AuthService
     {
         var collection = _firebaseService.GetCollection("users");
 
-        // Verificar email duplicado
         var existing = await collection
             .WhereEqualTo("Email", dto.Email)
             .GetSnapshotAsync();
@@ -32,14 +33,23 @@ public class AuthService
         if (existing.Count > 0)
             throw new Exception("Ya existe un usuario con ese correo");
 
-        // Validar roles permitidos
-        var rolesPermitidos = new[] { "donor", "receiver" };
-        var rolesValidos = dto.Roles
-            .Where(r => rolesPermitidos.Contains(r))
-            .ToList();
+        // Admin solo puede venir del seed-admin, usuarios normales solo donor/receiver
+        List<string> rolesValidos;
 
-        if (rolesValidos.Count == 0)
-            rolesValidos.Add("receiver");
+        if (dto.Roles.Contains("admin"))
+        {
+            rolesValidos = new List<string> { "admin" };
+        }
+        else
+        {
+            var rolesPermitidos = new[] { "donor", "receiver" };
+            rolesValidos = dto.Roles
+                .Where(r => rolesPermitidos.Contains(r))
+                .ToList();
+
+            if (rolesValidos.Count == 0)
+                rolesValidos.Add("receiver");
+        }
 
         var user = new User
         {
@@ -81,11 +91,9 @@ public class AuthService
         var doc = snapshot.Documents[0];
         var data = doc.ToDictionary();
 
-        // Verificar que la cuenta esté activa
         if (data.ContainsKey("IsActive") && !(bool)data["IsActive"])
             throw new Exception("Esta cuenta está desactivada");
 
-        // Mapear roles (Firestore los devuelve como List<object>)
         var roles = data.ContainsKey("Roles")
             ? ((List<object>)data["Roles"]).Select(r => r.ToString()!).ToList()
             : new List<string> { "receiver" };
@@ -105,10 +113,6 @@ public class AuthService
         if (!VerifyPassword(dto.Password, user.PasswordHash))
             throw new Exception("Contraseña incorrecta");
 
-        var token = GenerateToken(user);
-
-        // Devolvemos token + info básica del usuario para que el frontend
-        // sepa qué panel mostrar según los roles
         var refreshToken = await CreateRefreshTokenAsync(user.Id);
         var jwtToken = GenerateToken(user);
 
@@ -129,7 +133,6 @@ public class AuthService
 
     private string GenerateToken(User user)
     {
-        // Un Claim por cada rol — así [Authorize(Roles="donor")] funciona correctamente
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id),
@@ -137,7 +140,6 @@ public class AuthService
             new(ClaimTypes.Name, user.FullName),
         };
 
-        // Agregar un claim de rol por cada rol del usuario
         foreach (var role in user.Roles)
             claims.Add(new Claim(ClaimTypes.Role, role));
 
@@ -148,7 +150,7 @@ public class AuthService
 
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
-            audience: _configuration["Jwt:Audience"], // ← bug corregido
+            audience: _configuration["Jwt:Audience"],
             claims: claims,
             expires: DateTime.UtcNow.AddHours(8),
             signingCredentials: creds
@@ -165,7 +167,7 @@ public class AuthService
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
         return Convert.ToBase64String(bytes);
     }
-    
+
     public async Task<User?> GetById(string id)
     {
         var doc = await _firebaseService.GetCollection("users").Document(id).GetSnapshotAsync();
@@ -189,87 +191,77 @@ public class AuthService
         if (updates.Count > 0)
             await _firebaseService.GetCollection("users").Document(userId).UpdateAsync(updates);
     }
-    
+
     // ─── REFRESH TOKEN ────────────────────────────────────────────────
 
-public async Task<object> RefreshTokenAsync(string refreshToken)
-{
-    // Buscar el refresh token en Firestore
-    var snap = await _firebaseService.GetCollection("refreshTokens")
-        .WhereEqualTo("Token", refreshToken)
-        .WhereEqualTo("IsRevoked", false)
-        .GetSnapshotAsync();
-
-    if (snap.Count == 0)
-        throw new UnauthorizedAccessException("Refresh token inválido o expirado");
-
-    var data = snap.Documents[0].ToDictionary();
-    var expiresAt = ((Timestamp)data["ExpiresAt"]).ToDateTime();
-
-    if (expiresAt < DateTime.UtcNow)
-        throw new UnauthorizedAccessException("Refresh token expirado, inicia sesión nuevamente");
-
-    var userId = data["UserId"].ToString()!;
-    var user = await GetById(userId)
-        ?? throw new KeyNotFoundException("Usuario no encontrado");
-
-    // Revocar el refresh token usado y generar uno nuevo
-    await snap.Documents[0].Reference.UpdateAsync(
-        new Dictionary<string, object> { { "IsRevoked", true } });
-
-    var newRefreshToken = await CreateRefreshTokenAsync(userId);
-    var newJwt = GenerateToken(user);
-
-    return new
+    public async Task<object> RefreshTokenAsync(string refreshToken)
     {
-        Token = newJwt,
-        RefreshToken = newRefreshToken,
-        User = new { user.Id, user.FullName, user.Email, user.Zone, user.Roles }
-    };
-}
+        var snap = await _firebaseService.GetCollection("refreshTokens")
+            .WhereEqualTo("Token", refreshToken)
+            .WhereEqualTo("IsRevoked", false)
+            .GetSnapshotAsync();
 
-public async Task RevokeRefreshTokenAsync(string userId)
-{
-    // Revocar todos los refresh tokens del usuario (logout)
-    var snap = await _firebaseService.GetCollection("refreshTokens")
-        .WhereEqualTo("UserId", userId)
-        .WhereEqualTo("IsRevoked", false)
-        .GetSnapshotAsync();
+        if (snap.Count == 0)
+            throw new UnauthorizedAccessException("Refresh token inválido o expirado");
 
-    foreach (var doc in snap.Documents)
-        await doc.Reference.UpdateAsync(
+        var data = snap.Documents[0].ToDictionary();
+        var expiresAt = ((Timestamp)data["ExpiresAt"]).ToDateTime();
+
+        if (expiresAt < DateTime.UtcNow)
+            throw new UnauthorizedAccessException("Refresh token expirado, inicia sesión nuevamente");
+
+        var userId = data["UserId"].ToString()!;
+        var user = await GetById(userId)
+            ?? throw new KeyNotFoundException("Usuario no encontrado");
+
+        await snap.Documents[0].Reference.UpdateAsync(
             new Dictionary<string, object> { { "IsRevoked", true } });
-}
 
-private async Task<string> CreateRefreshTokenAsync(string userId)
-{
-    var token = Convert.ToBase64String(
-        System.Security.Cryptography.RandomNumberGenerator.GetBytes(64));
+        var newRefreshToken = await CreateRefreshTokenAsync(userId);
+        var newJwt = GenerateToken(user);
 
-    await _firebaseService.GetCollection("refreshTokens")
-        .Document(Guid.NewGuid().ToString())
-        .SetAsync(new Dictionary<string, object>
+        return new
         {
-            { "Token", token },
-            { "UserId", userId },
-            { "IsRevoked", false },
-            { "CreatedAt", DateTime.UtcNow },
-            // Refresh token dura 7 días
-            { "ExpiresAt", DateTime.UtcNow.AddDays(7) }
-        });
+            Token = newJwt,
+            RefreshToken = newRefreshToken,
+            User = new { user.Id, user.FullName, user.Email, user.Zone, user.Roles }
+        };
+    }
 
-    return token;
-}
+    public async Task RevokeRefreshTokenAsync(string userId)
+    {
+        var snap = await _firebaseService.GetCollection("refreshTokens")
+            .WhereEqualTo("UserId", userId)
+            .WhereEqualTo("IsRevoked", false)
+            .GetSnapshotAsync();
 
-// ─── LOGIN ACTUALIZADO (devuelve refresh token también) ──────────
+        foreach (var doc in snap.Documents)
+            await doc.Reference.UpdateAsync(
+                new Dictionary<string, object> { { "IsRevoked", true } });
+    }
 
-// Reemplaza el return al final de tu Login() existente con esto:
-// var newRefreshToken = await CreateRefreshTokenAsync(user.Id);
-// return new { Token = token, RefreshToken = newRefreshToken, User = new {...} };
+    private async Task<string> CreateRefreshTokenAsync(string userId)
+    {
+        var token = Convert.ToBase64String(
+            RandomNumberGenerator.GetBytes(64));
 
-// ─── RECUPERACIÓN DE CONTRASEÑA ──────────────────────────────────
+        await _firebaseService.GetCollection("refreshTokens")
+            .Document(Guid.NewGuid().ToString())
+            .SetAsync(new Dictionary<string, object>
+            {
+                { "Token", token },
+                { "UserId", userId },
+                { "IsRevoked", false },
+                { "CreatedAt", DateTime.UtcNow },
+                { "ExpiresAt", DateTime.UtcNow.AddDays(7) }
+            });
 
-public async Task ForgotPasswordAsync(string email)
+        return token;
+    }
+
+    // ─── RECUPERACIÓN DE CONTRASEÑA ──────────────────────────────────
+
+    public async Task ForgotPasswordAsync(string email)
 {
     var snap = await _firebaseService.GetCollection("users")
         .WhereEqualTo("Email", email)
@@ -279,10 +271,10 @@ public async Task ForgotPasswordAsync(string email)
     if (snap.Count == 0) return;
 
     var userId = snap.Documents[0].ToDictionary()["Id"].ToString()!;
+    var fullName = snap.Documents[0].ToDictionary()["FullName"].ToString()!;
 
-    // Generar token de reset (válido 1 hora)
     var resetToken = Convert.ToBase64String(
-        System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        RandomNumberGenerator.GetBytes(32));
 
     await _firebaseService.GetCollection("passwordResets")
         .Document(Guid.NewGuid().ToString())
@@ -296,63 +288,162 @@ public async Task ForgotPasswordAsync(string email)
             { "CreatedAt", DateTime.UtcNow }
         });
 
-    // En producción aquí enviarías un email con el token
-    // Por ahora lo guardamos en Firestore y el admin puede verlo
-    // o el frontend lo muestra directamente (modo demo)
+    // Enviar email real
+    await SendResetEmailAsync(email, fullName, resetToken);
 }
 
-public async Task ResetPasswordAsync(ResetPasswordDto dto)
+private async Task SendResetEmailAsync(string email, string fullName, string resetToken)
 {
-    var snap = await _firebaseService.GetCollection("passwordResets")
-        .WhereEqualTo("Token", dto.Token)
-        .WhereEqualTo("Email", dto.Email)
-        .WhereEqualTo("Used", false)
-        .GetSnapshotAsync();
+    var apiKey = _configuration["SendGrid:ApiKey"];
+    var client = new SendGridClient(apiKey);
 
-    if (snap.Count == 0)
-        throw new InvalidOperationException("Token inválido o ya utilizado");
+    // URL que abrirá Angular — cuando tengas el frontend listo
+    // Por ahora apunta a Scalar para que puedas probarlo
+    var encodedToken = Uri.EscapeDataString(resetToken);
+    var encodedEmail = Uri.EscapeDataString(email);
+    var resetUrl = $"http://localhost:4200/reset-password?token={encodedToken}&email={encodedEmail}";
 
-    var data = snap.Documents[0].ToDictionary();
-    var expiresAt = ((Timestamp)data["ExpiresAt"]).ToDateTime();
-
-    if (expiresAt < DateTime.UtcNow)
-        throw new InvalidOperationException("El token ha expirado, solicita uno nuevo");
-
-    var userId = data["UserId"].ToString()!;
-
-    // Actualizar contraseña en Firestore
-    await _firebaseService.GetCollection("users")
-        .Document(userId)
-        .UpdateAsync(new Dictionary<string, object>
-        {
-            { "PasswordHash", HashPassword(dto.NewPassword) }
-        });
-
-    // Marcar token como usado
-    await snap.Documents[0].Reference.UpdateAsync(
-        new Dictionary<string, object> { { "Used", true } });
-
-    // Revocar todos los refresh tokens por seguridad
-    await RevokeRefreshTokenAsync(userId);
-}
-
-// Solo para demo — muestra el token de reset en pantalla
-public async Task<object> GetResetTokenForDemo(string email)
-{
-    var snap = await _firebaseService.GetCollection("passwordResets")
-        .WhereEqualTo("Email", email)
-        .WhereEqualTo("Used", false)
-        .GetSnapshotAsync();
-
-    if (snap.Count == 0)
-        return new { message = "No hay tokens pendientes para este email" };
-
-    var data = snap.Documents[0].ToDictionary();
-    return new
+    var msg = new SendGridMessage
     {
-        Token = data["Token"].ToString(),
-        Email = data["Email"].ToString(),
-        ExpiresAt = ((Google.Cloud.Firestore.Timestamp)data["ExpiresAt"]).ToDateTime()
+        From = new EmailAddress(
+            _configuration["SendGrid:FromEmail"],
+            _configuration["SendGrid:FromName"]
+        ),
+        Subject = "Restablecer tu contraseña - DonaCerca"
     };
+
+    msg.AddTo(new EmailAddress(email, fullName));
+    
+
+    var response = await client.SendEmailAsync(msg);
+
+    if ((int)response.StatusCode >= 400)
+    {
+        var body = await response.Body.ReadAsStringAsync();
+        throw new Exception($"Error enviando email: {body}");
+    }
 }
+
+    public async Task ResetPasswordAsync(ResetPasswordDto dto)
+    {
+        var snap = await _firebaseService.GetCollection("passwordResets")
+            .WhereEqualTo("Token", dto.Token)
+            .WhereEqualTo("Email", dto.Email)
+            .WhereEqualTo("Used", false)
+            .GetSnapshotAsync();
+
+        if (snap.Count == 0)
+            throw new InvalidOperationException("Token inválido o ya utilizado");
+
+        var data = snap.Documents[0].ToDictionary();
+        var expiresAt = ((Timestamp)data["ExpiresAt"]).ToDateTime();
+
+        if (expiresAt < DateTime.UtcNow)
+            throw new InvalidOperationException("El token ha expirado, solicita uno nuevo");
+
+        var userId = data["UserId"].ToString()!;
+
+        await _firebaseService.GetCollection("users")
+            .Document(userId)
+            .UpdateAsync(new Dictionary<string, object>
+            {
+                { "PasswordHash", HashPassword(dto.NewPassword) }
+            });
+
+        await snap.Documents[0].Reference.UpdateAsync(
+            new Dictionary<string, object> { { "Used", true } });
+
+        await RevokeRefreshTokenAsync(userId);
+    }
+
+    public async Task<object> GetResetTokenForDemo(string email)
+    {
+        var snap = await _firebaseService.GetCollection("passwordResets")
+            .WhereEqualTo("Email", email)
+            .WhereEqualTo("Used", false)
+            .GetSnapshotAsync();
+
+        if (snap.Count == 0)
+            return new { message = "No hay tokens pendientes para este email" };
+
+        var data = snap.Documents[0].ToDictionary();
+        return new
+        {
+            Token = data["Token"].ToString(),
+            Email = data["Email"].ToString(),
+            ExpiresAt = ((Timestamp)data["ExpiresAt"]).ToDateTime()
+        };
+    }
+
+    // ─── GOOGLE LOGIN ─────────────────────────────────────────────────
+
+    public async Task<object> GoogleLoginAsync(string idToken)
+    {
+        var decodedToken = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance
+            .VerifyIdTokenAsync(idToken);
+
+        var uid = decodedToken.Uid;
+        var email = decodedToken.Claims["email"].ToString()!;
+        var name = decodedToken.Claims.ContainsKey("name")
+            ? decodedToken.Claims["name"].ToString()!
+            : email.Split('@')[0];
+
+        var collection = _firebaseService.GetCollection("users");
+        var existing = await collection.WhereEqualTo("Email", email).GetSnapshotAsync();
+
+        User user;
+
+        if (existing.Count > 0)
+        {
+            var d = existing.Documents[0].ToDictionary();
+            user = new User
+            {
+                Id = d["Id"].ToString()!,
+                FullName = d["FullName"].ToString()!,
+                Email = d["Email"].ToString()!,
+                Zone = d.ContainsKey("Zone") ? d["Zone"].ToString()! : "",
+                Roles = ((List<object>)d["Roles"]).Select(r => r.ToString()!).ToList(),
+                IsActive = (bool)d["IsActive"]
+            };
+        }
+        else
+        {
+            user = new User
+            {
+                Id = uid,
+                FullName = name,
+                Email = email,
+                PasswordHash = "",
+                Zone = "",
+                Roles = new List<string> { "receiver" },
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await collection.Document(user.Id).SetAsync(new Dictionary<string, object>
+            {
+                { "Id", user.Id },
+                { "FullName", user.FullName },
+                { "Email", user.Email },
+                { "PasswordHash", user.PasswordHash },
+                { "Zone", user.Zone },
+                { "Roles", user.Roles },
+                { "IsActive", user.IsActive },
+                { "CreatedAt", user.CreatedAt }
+            });
+        }
+
+        if (!user.IsActive)
+            throw new UnauthorizedAccessException("Esta cuenta está desactivada");
+
+        var refreshToken = await CreateRefreshTokenAsync(user.Id);
+        var jwt = GenerateToken(user);
+
+        return new
+        {
+            Token = jwt,
+            RefreshToken = refreshToken,
+            User = new { user.Id, user.FullName, user.Email, user.Zone, user.Roles }
+        };
+    }
 }
