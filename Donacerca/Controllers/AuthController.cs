@@ -139,4 +139,18 @@ public class AuthController : ControllerBase
         var token = await _authService.GetResetTokenForDemo(email);
         return Ok(token);
     }
+    
+    [HttpPost("google-login")]
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto dto)
+    {
+        try
+        {
+            var result = await _authService.GoogleLoginAsync(dto.IdToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });    
+        }
+    }
 }

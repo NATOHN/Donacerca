@@ -28,3 +28,9 @@ public class RefreshTokenDto
     [Required]
     public string RefreshToken { get; set; } = string.Empty;
 }
+
+public class GoogleLoginDto
+{
+    [Required(ErrorMessage = "El token de Google es requerido")]
+    public string IdToken { get; set; } = string.Empty;
+}

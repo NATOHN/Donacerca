@@ -262,35 +262,42 @@ public class AuthService
     // ─── RECUPERACIÓN DE CONTRASEÑA ──────────────────────────────────
 
     public async Task ForgotPasswordAsync(string email)
-{
-    var snap = await _firebaseService.GetCollection("users")
-        .WhereEqualTo("Email", email)
-        .GetSnapshotAsync();
+    {
+        var snap = await _firebaseService.GetCollection("users")
+            .WhereEqualTo("Email", email)
+            .GetSnapshotAsync();
 
-    // Siempre respondemos igual aunque no exista (seguridad)
-    if (snap.Count == 0) return;
+        if (snap.Count == 0) return;
 
-    var userId = snap.Documents[0].ToDictionary()["Id"].ToString()!;
-    var fullName = snap.Documents[0].ToDictionary()["FullName"].ToString()!;
+        var userId = snap.Documents[0].ToDictionary()["Id"].ToString()!;
+        var fullName = snap.Documents[0].ToDictionary()["FullName"].ToString()!;
 
-    var resetToken = Convert.ToBase64String(
-        RandomNumberGenerator.GetBytes(32));
+        var resetToken = Convert.ToBase64String(
+            RandomNumberGenerator.GetBytes(32));
 
-    await _firebaseService.GetCollection("passwordResets")
-        .Document(Guid.NewGuid().ToString())
-        .SetAsync(new Dictionary<string, object>
+        await _firebaseService.GetCollection("passwordResets")
+            .Document(Guid.NewGuid().ToString())
+            .SetAsync(new Dictionary<string, object>
+            {
+                { "Token", resetToken },
+                { "Email", email },
+                { "UserId", userId },
+                { "Used", false },
+                { "ExpiresAt", DateTime.UtcNow.AddHours(1) },
+                { "CreatedAt", DateTime.UtcNow }
+            });
+
+        // Intentar enviar email pero no fallar si no funciona
+        try
         {
-            { "Token", resetToken },
-            { "Email", email },
-            { "UserId", userId },
-            { "Used", false },
-            { "ExpiresAt", DateTime.UtcNow.AddHours(1) },
-            { "CreatedAt", DateTime.UtcNow }
-        });
-
-    // Enviar email real
-    await SendResetEmailAsync(email, fullName, resetToken);
-}
+            await SendResetEmailAsync(email, fullName, resetToken);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error enviando email: {ex.Message}");
+            // Continuar aunque falle el email
+        }
+    }
 
 private async Task SendResetEmailAsync(string email, string fullName, string resetToken)
 {
