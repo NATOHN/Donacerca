@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
 # Compiled output
@@ -42,3 +43,5 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+=======
+>>>>>>> 022c935ecb7708daa24bac1e3d4faeb237e8e218
