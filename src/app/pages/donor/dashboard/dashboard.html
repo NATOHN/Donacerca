@@ -1,0 +1,117 @@
+﻿<div class="donor-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🎁</span>
+      <h2>DonaCerca</h2>
+      <p>Panel Donante</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a routerLink="/donor/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </a>
+      <a routerLink="/donor/posts" routerLinkActive="active">
+        <mat-icon>inventory_2</mat-icon> Mis publicaciones
+      </a>
+      <a routerLink="/donor/posts/new" routerLinkActive="active">
+        <mat-icon>add_circle</mat-icon> Nueva publicación
+      </a>
+      <a routerLink="/catalog" routerLinkActive="active">
+        <mat-icon>store</mat-icon> Ver catálogo
+      </a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <div class="page-header">
+      <div>
+        <h1>¡Hola, {{ userName }}! 👋</h1>
+        <p>Gracias por ayudar a tu comunidad</p>
+      </div>
+      <a mat-raised-button color="primary" routerLink="/donor/posts/new">
+        <mat-icon>add</mat-icon> Nueva publicación
+      </a>
+    </div>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+
+    <div *ngIf="!loading">
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <mat-card class="stat-card active">
+          <mat-icon>inventory_2</mat-icon>
+          <div>
+            <span class="stat-number">{{ activePosts }}</span>
+            <span class="stat-label">Disponibles</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card reserved">
+          <mat-icon>bookmark</mat-icon>
+          <div>
+            <span class="stat-number">{{ reservedPosts }}</span>
+            <span class="stat-label">Reservados</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card completed">
+          <mat-icon>volunteer_activism</mat-icon>
+          <div>
+            <span class="stat-number">{{ completedPosts }}</span>
+            <span class="stat-label">Entregados</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card total">
+          <mat-icon>list_alt</mat-icon>
+          <div>
+            <span class="stat-number">{{ posts.length }}</span>
+            <span class="stat-label">Total publicaciones</span>
+          </div>
+        </mat-card>
+      </div>
+
+      <!-- Publicaciones recientes -->
+      <mat-card class="recent-card">
+        <mat-card-header>
+          <mat-card-title>Publicaciones recientes</mat-card-title>
+          <a mat-button color="primary" routerLink="/donor/posts">Ver todas</a>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="empty-state" *ngIf="posts.length === 0">
+            <span>📦</span>
+            <p>Aún no tienes publicaciones</p>
+            <a mat-raised-button color="primary" routerLink="/donor/posts/new">
+              Crear primera publicación
+            </a>
+          </div>
+          <div class="recent-list" *ngIf="posts.length > 0">
+            <div class="recent-item" *ngFor="let post of posts.slice(0, 5)">
+              <div class="recent-info">
+                <strong>{{ post.itemName }}</strong>
+                <span>{{ post.zone }}</span>
+              </div>
+              <span class="status-chip" [class]="post.status">
+                {{ post.status | titlecase }}
+              </span>
+              <a mat-icon-button [routerLink]="['/donor/requests', post.id]"
+                 *ngIf="post.status === 'disponible' || post.status === 'reservado'">
+                <mat-icon>people</mat-icon>
+              </a>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+  </main>
+</div>

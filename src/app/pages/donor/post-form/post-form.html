@@ -1,0 +1,134 @@
+﻿<div class="donor-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🎁</span>
+      <h2>DonaCerca</h2>
+      <p>Panel Donante</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a routerLink="/donor/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </a>
+      <a routerLink="/donor/posts" routerLinkActive="active">
+        <mat-icon>inventory_2</mat-icon> Mis publicaciones
+      </a>
+      <a routerLink="/donor/posts/new" routerLinkActive="active">
+        <mat-icon>add_circle</mat-icon> Nueva publicación
+      </a>
+      <a routerLink="/catalog" routerLinkActive="active">
+        <mat-icon>store</mat-icon> Ver catálogo
+      </a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1>Nueva publicación</h1>
+        <p>Comparte un artículo con tu comunidad</p>
+      </div>
+      <a mat-stroked-button routerLink="/donor/posts">
+        <mat-icon>arrow_back</mat-icon> Volver
+      </a>
+    </div>
+
+    <mat-card class="form-card">
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          <div class="form-grid">
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Nombre del artículo</mat-label>
+              <input matInput formControlName="itemName" placeholder="Ej: Camisa azul talla M"/>
+              <mat-error>Mínimo 3 caracteres</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Categoría</mat-label>
+              <mat-select formControlName="categoryId">
+                <mat-option *ngFor="let cat of categories" [value]="cat.id">
+                  {{ cat.name }}
+                </mat-option>
+              </mat-select>
+              <mat-error>Selecciona una categoría</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Estado del artículo</mat-label>
+              <mat-select formControlName="itemCondition">
+                <mat-option value="nuevo">✨ Nuevo</mat-option>
+                <mat-option value="buen estado">👍 Buen estado</mat-option>
+                <mat-option value="uso regular">🔄 Uso regular</mat-option>
+              </mat-select>
+              <mat-error>Selecciona el estado</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Zona de entrega</mat-label>
+              <mat-select formControlName="zone">
+                <mat-option *ngFor="let zone of zones" [value]="zone.name">
+                  📍 {{ zone.name }}
+                </mat-option>
+              </mat-select>
+              <mat-error>Selecciona una zona</mat-error>
+            </mat-form-field>
+
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Descripción</mat-label>
+            <textarea matInput formControlName="description" rows="4"
+                      placeholder="Describe el artículo con detalle..."></textarea>
+            <mat-error>Mínimo 10 caracteres</mat-error>
+          </mat-form-field>
+
+          <!-- Fotos -->
+          <div class="photos-section">
+            <h3>Fotos del artículo</h3>
+            <p class="photos-hint">Máximo 5 fotos. Google Vision verificará que sean apropiadas.</p>
+
+            <div class="photos-grid">
+              <div class="photo-item" *ngFor="let url of photoUrls; let i = index">
+                <img [src]="url" [alt]="'Foto ' + (i+1)"/>
+                <div class="photo-labels" *ngIf="photoLabels[i]?.length > 0">
+                  <span *ngFor="let label of photoLabels[i]">{{ label }}</span>
+                </div>
+                <button mat-icon-button class="remove-photo" (click)="removePhoto(i)" type="button">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+
+              <label class="upload-btn" *ngIf="photoUrls.length < 5 && !uploadingPhotos">
+                <mat-icon>add_photo_alternate</mat-icon>
+                <span>Agregar foto</span>
+                <input type="file" accept="image/*" multiple (change)="onFileSelected($event)" hidden/>
+              </label>
+
+              <div class="uploading" *ngIf="uploadingPhotos">
+                <mat-spinner diameter="32"></mat-spinner>
+                <span>Subiendo...</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="submit-row">
+            <button mat-stroked-button type="button" routerLink="/donor/posts">
+              Cancelar
+            </button>
+            <button mat-raised-button color="primary" type="submit"
+                    [disabled]="form.invalid || loading || uploadingPhotos">
+              <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+              <mat-icon *ngIf="!loading">publish</mat-icon>
+              <span *ngIf="!loading">Publicar artículo</span>
+            </button>
+          </div>
+
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </main>
+</div>

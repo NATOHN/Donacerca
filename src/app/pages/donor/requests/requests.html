@@ -1,0 +1,83 @@
+﻿<div class="donor-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🎁</span>
+      <h2>DonaCerca</h2>
+      <p>Panel Donante</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a routerLink="/donor/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </a>
+      <a routerLink="/donor/posts" routerLinkActive="active">
+        <mat-icon>inventory_2</mat-icon> Mis publicaciones
+      </a>
+      <a routerLink="/donor/posts/new" routerLinkActive="active">
+        <mat-icon>add_circle</mat-icon> Nueva publicación
+      </a>
+      <a routerLink="/catalog" routerLinkActive="active">
+        <mat-icon>store</mat-icon> Ver catálogo
+      </a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1>Solicitudes recibidas</h1>
+        <p>Selecciona quién recibirá tu artículo</p>
+      </div>
+      <a mat-stroked-button routerLink="/donor/posts">
+        <mat-icon>arrow_back</mat-icon> Volver
+      </a>
+    </div>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && requests.length === 0">
+      <span>🔔</span>
+      <h3>Nadie ha solicitado este artículo aún</h3>
+      <p>Cuando alguien lo solicite aparecerá aquí</p>
+    </div>
+
+    <div class="requests-list" *ngIf="!loading && requests.length > 0">
+
+      <div class="section-title" *ngIf="getPendingRequests().length > 0">
+        <mat-icon>pending</mat-icon>
+        <span>{{ getPendingRequests().length }} solicitudes pendientes</span>
+      </div>
+
+      <mat-card class="request-card" *ngFor="let req of requests">
+        <mat-card-content>
+          <div class="request-info">
+            <div class="avatar">
+              {{ req.receiverName.charAt(0).toUpperCase() }}
+            </div>
+            <div class="details">
+              <strong>{{ req.receiverName }}</strong>
+              <span>Solicitud enviada: {{ req.requestTimestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <span class="status-chip" [class]="req.status">
+              {{ req.status | titlecase }}
+            </span>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions *ngIf="req.status === 'pendiente'">
+          <button mat-raised-button color="primary"
+                  (click)="selectReceiver(req.receiverId)"
+                  [disabled]="selecting">
+            <mat-spinner *ngIf="selecting" diameter="18"></mat-spinner>
+            <mat-icon *ngIf="!selecting">how_to_reg</mat-icon>
+            <span *ngIf="!selecting">Seleccionar como receptor</span>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,89 @@
+﻿<div class="donor-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🎁</span>
+      <h2>DonaCerca</h2>
+      <p>Panel Donante</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a routerLink="/donor/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </a>
+      <a routerLink="/donor/posts" routerLinkActive="active">
+        <mat-icon>inventory_2</mat-icon> Mis publicaciones
+      </a>
+      <a routerLink="/donor/posts/new" routerLinkActive="active">
+        <mat-icon>add_circle</mat-icon> Nueva publicación
+      </a>
+      <a routerLink="/catalog" routerLinkActive="active">
+        <mat-icon>store</mat-icon> Ver catálogo
+      </a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1>Mis publicaciones</h1>
+        <p>Gestiona todos tus artículos donados</p>
+      </div>
+      <a mat-raised-button color="primary" routerLink="/donor/posts/new">
+        <mat-icon>add</mat-icon> Nueva publicación
+      </a>
+    </div>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && posts.length === 0">
+      <span>📦</span>
+      <h3>Aún no tienes publicaciones</h3>
+      <a mat-raised-button color="primary" routerLink="/donor/posts/new">
+        Crear primera publicación
+      </a>
+    </div>
+
+    <div class="posts-grid" *ngIf="!loading && posts.length > 0">
+      <mat-card class="post-card" *ngFor="let post of posts">
+
+        <div class="post-image">
+          <img *ngIf="post.photoUrls?.length > 0"
+               [src]="post.photoUrls[0]" [alt]="post.itemName"/>
+          <div *ngIf="!post.photoUrls?.length" class="no-image">
+            <mat-icon>image_not_supported</mat-icon>
+          </div>
+          <span class="status-badge" [class]="post.status">
+            {{ post.status | titlecase }}
+          </span>
+        </div>
+
+        <mat-card-content>
+          <h3>{{ post.itemName }}</h3>
+          <p class="description">{{ post.description }}</p>
+          <div class="post-meta">
+            <span><mat-icon>location_on</mat-icon> {{ post.zone }}</span>
+            <span><mat-icon>star</mat-icon> {{ post.itemCondition }}</span>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-stroked-button color="primary"
+                  (click)="viewRequests(post.id)"
+                  *ngIf="post.status === 'disponible' || post.status === 'reservado'">
+            <mat-icon>people</mat-icon> Solicitudes
+          </button>
+          <button mat-stroked-button color="warn"
+                  (click)="deactivate(post)"
+                  *ngIf="post.isActive">
+            <mat-icon>block</mat-icon> Desactivar
+          </button>
+        </mat-card-actions>
+
+      </mat-card>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,126 @@
+﻿.detail-container {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 40px;
+}
+
+.loading-center {
+  display: flex;
+  justify-content: center;
+  padding: 80px;
+}
+
+.back-bar {
+  padding: 12px 24px;
+  background: white;
+  border-bottom: 1px solid #eee;
+}
+
+.detail-content {
+  max-width: 1000px;
+  margin: 24px auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.gallery .main-photo {
+  width: 100%;
+  height: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.gallery .main-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-photo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #bbb;
+}
+
+.no-photo mat-icon { font-size: 64px; width: 64px; height: 64px; }
+
+.thumbnails {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.thumbnails img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.thumbnails img.active { border-color: #e91e63; }
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  text-transform: capitalize;
+}
+
+.status-badge.disponible { background: #e8f5e9; color: #2e7d32; }
+.status-badge.reservado { background: #fff8e1; color: #f57f17; }
+.status-badge.entregado { background: #e3f2fd; color: #1565c0; }
+.status-badge.vencido { background: #fde8e8; color: #c62828; }
+
+.detail-info h1 { font-size: 26px; margin: 8px 0 16px; }
+
+.info-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.chip mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.chip.condition { background: #fce4ec; color: #880e4f; }
+.chip.zone { background: #e3f2fd; color: #0d47a1; }
+.chip.donor { background: #f3e5f5; color: #4a148c; }
+
+.description-section h3 { font-size: 16px; margin-bottom: 8px; color: #333; }
+.description-section p { color: #555; line-height: 1.7; }
+
+.actions { margin-top: 28px; }
+.action-btn { height: 48px; font-size: 15px; width: 100%; }
+
+.donor-note { color: #888; font-size: 13px; margin-top: 12px; text-align: center; }
+
+.reserved-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff8e1;
+  color: #f57f17;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .detail-content { grid-template-columns: 1fr; }
+}

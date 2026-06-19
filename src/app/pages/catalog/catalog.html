@@ -1,0 +1,86 @@
+﻿<div class="catalog-container">
+
+  <!-- Header -->
+  <div class="catalog-header">
+    <div class="header-content">
+      <h1>🤝 DonaCerca</h1>
+      <p>Artículos disponibles en San Pedro Sula</p>
+    </div>
+    <div class="header-actions">
+      <a mat-stroked-button routerLink="/login">Iniciar sesión</a>
+      <a mat-raised-button color="primary" routerLink="/register">Unirme</a>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-bar">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Categoría</mat-label>
+      <mat-select [(ngModel)]="selectedCategory" (selectionChange)="loadPosts()">
+        <mat-option value="">Todas las categorías</mat-option>
+        <mat-option *ngFor="let cat of categories" [value]="cat.id">
+          {{ cat.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Zona</mat-label>
+      <mat-select [(ngModel)]="selectedZone" (selectionChange)="loadPosts()">
+        <mat-option value="">Todas las zonas</mat-option>
+        <mat-option *ngFor="let zone of zones" [value]="zone.name">
+          📍 {{ zone.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-stroked-button (click)="clearFilters()" *ngIf="selectedCategory || selectedZone">
+      <mat-icon>clear</mat-icon> Limpiar filtros
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-center" *ngIf="loading">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Cargando artículos...</p>
+  </div>
+
+  <!-- Sin resultados -->
+  <div class="empty-state" *ngIf="!loading && posts.length === 0">
+    <span>📦</span>
+    <h3>No hay artículos disponibles</h3>
+    <p>Intenta con otros filtros o vuelve más tarde</p>
+  </div>
+
+  <!-- Grid de artículos -->
+  <div class="posts-grid" *ngIf="!loading && posts.length > 0">
+    <mat-card class="post-card" *ngFor="let post of posts">
+
+      <div class="post-image">
+        <img *ngIf="post.photoUrls?.length > 0"
+             [src]="post.photoUrls[0]" [alt]="post.itemName"/>
+        <div *ngIf="!post.photoUrls?.length" class="no-image">
+          <mat-icon>image_not_supported</mat-icon>
+        </div>
+        <span class="condition-badge" [class]="post.itemCondition">
+          {{ post.itemCondition }}
+        </span>
+      </div>
+
+      <mat-card-content>
+        <h3>{{ post.itemName }}</h3>
+        <p class="description">{{ post.description }}</p>
+        <div class="post-meta">
+          <span><mat-icon>location_on</mat-icon> {{ post.zone }}</span>
+          <span><mat-icon>person</mat-icon> {{ post.donorName }}</span>
+        </div>
+      </mat-card-content>
+
+      <button mat-stroked-button (click)="viewDetail(post.id)">
+        Ver detalles
+      </button>
+
+    </mat-card>
+  </div>
+
+</div>

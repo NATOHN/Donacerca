@@ -1,0 +1,154 @@
+﻿<div class="admin-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🤝</span>
+      <h2>DonaCerca</h2>
+      <p>Panel Admin</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a routerLink="/admin/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </a>
+      <a routerLink="/admin/categories" routerLinkActive="active">
+        <mat-icon>category</mat-icon> Categorías
+      </a>
+      <a routerLink="/admin/moderation" routerLinkActive="active">
+        <mat-icon>manage_search</mat-icon> Moderación
+      </a>
+      <a routerLink="/admin/history" routerLinkActive="active">
+        <mat-icon>history</mat-icon> Historial
+      </a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <div class="page-header">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Bienvenido, {{ userName }}</p>
+      </div>
+    </div>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+
+    <div *ngIf="!loading && stats">
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <mat-card class="stat-card active">
+          <mat-icon>inventory_2</mat-icon>
+          <div>
+            <span class="stat-number">{{ stats.activePosts }}</span>
+            <span class="stat-label">Publicaciones activas</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card completed">
+          <mat-icon>volunteer_activism</mat-icon>
+          <div>
+            <span class="stat-number">{{ stats.completedDonations }}</span>
+            <span class="stat-label">Donaciones completadas</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card pending">
+          <mat-icon>pending_actions</mat-icon>
+          <div>
+            <span class="stat-number">{{ stats.pendingRequests }}</span>
+            <span class="stat-label">Solicitudes pendientes</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card rate">
+          <mat-icon>trending_up</mat-icon>
+          <div>
+            <span class="stat-number">{{ stats.completionRate }}%</span>
+            <span class="stat-label">Tasa de completación</span>
+          </div>
+        </mat-card>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+
+        <!-- Por estado -->
+        <mat-card class="chart-card">
+          <mat-card-header>
+            <mat-card-title>Distribución por estado</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="status-bars">
+              <div class="status-row" *ngFor="let entry of getStatusEntries()">
+                <span class="status-label">{{ entry.key | titlecase }}</span>
+                <div class="bar-container">
+                  <div class="bar" [class]="entry.key"
+                       [style.width.%]="stats!.totalPosts > 0 ? (entry.value / stats!.totalPosts) * 100 : 0">
+                  </div>
+                </div>
+                <span class="status-count">{{ entry.value }}</span>
+              </div>
+              <p *ngIf="getStatusEntries().length === 0" class="empty-trend">
+                Sin datos aún
+              </p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Tendencia -->
+        <mat-card class="chart-card">
+          <mat-card-header>
+            <mat-card-title>Tendencia de donaciones</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <mat-select [(ngModel)]="trendPeriod"
+                        (selectionChange)="loadTrend()"
+                        class="period-select">
+              <mat-option value="week">Por semana</mat-option>
+              <mat-option value="month">Por mes</mat-option>
+            </mat-select>
+            <div class="trend-list">
+              <div class="trend-row" *ngFor="let item of trend">
+                <span>{{ item.date || item.month }}</span>
+                <span class="trend-count">{{ item.count }} donaciones</span>
+              </div>
+              <p *ngIf="trend.length === 0" class="empty-trend">
+                Sin datos de tendencia aún
+              </p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+      </div>
+
+      <!-- Acciones rápidas -->
+      <mat-card class="quick-actions">
+        <mat-card-header>
+          <mat-card-title>Acciones rápidas</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="actions-grid">
+            <a mat-raised-button color="primary" routerLink="/admin/categories">
+              <mat-icon>category</mat-icon> Gestionar categorías
+            </a>
+            <a mat-raised-button color="accent" routerLink="/admin/moderation">
+              <mat-icon>manage_search</mat-icon> Moderar publicaciones
+            </a>
+            <a mat-raised-button routerLink="/admin/history">
+              <mat-icon>history</mat-icon> Ver historial
+            </a>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+  </main>
+</div>

@@ -1,0 +1,110 @@
+﻿.receiver-layout { display: flex; min-height: 100vh; background: #f5f5f5; }
+
+.sidebar {
+  width: 240px; background: #1a1a2e; color: white;
+  display: flex; flex-direction: column;
+  position: fixed; height: 100vh; overflow-y: auto;
+}
+
+.sidebar-header { padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+.sidebar-header .logo { font-size: 36px; }
+.sidebar-header h2 { margin: 8px 0 4px; font-size: 18px; color: #e91e63; }
+.sidebar-header p { margin: 0; font-size: 12px; opacity: 0.6; }
+
+.sidebar-nav { flex: 1; padding: 16px 0; }
+.sidebar-nav a {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; color: rgba(255,255,255,0.7);
+  text-decoration: none; font-size: 14px; transition: all 0.2s;
+}
+.sidebar-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
+.sidebar-nav a.active { background: #e91e63; color: white; }
+
+.logout-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px 20px; background: none; border: none;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6); cursor: pointer;
+  font-size: 14px; width: 100%;
+}
+.logout-btn:hover { color: #e91e63; }
+
+.main-content { flex: 1; margin-left: 240px; padding: 32px; }
+
+.page-header {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 28px;
+}
+.page-header h1 { margin: 0; font-size: 28px; }
+.page-header p { margin: 4px 0 0; color: #888; }
+
+.loading-center { display: flex; justify-content: center; padding: 60px; }
+
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 16px; margin-bottom: 24px;
+}
+
+.stat-card {
+  display: flex !important; align-items: center;
+  gap: 16px; padding: 20px !important;
+  border-radius: 12px !important; border-left: 4px solid;
+}
+.stat-card mat-icon { font-size: 36px; width: 36px; height: 36px; }
+.stat-card div { display: flex; flex-direction: column; }
+.stat-number { font-size: 28px; font-weight: 700; line-height: 1; }
+.stat-label { font-size: 13px; color: #666; margin-top: 4px; }
+
+.stat-card.pending { border-color: #ff9800; }
+.stat-card.pending mat-icon { color: #ff9800; }
+.stat-card.accepted { border-color: #4caf50; }
+.stat-card.accepted mat-icon { color: #4caf50; }
+.stat-card.total { border-color: #2196f3; }
+.stat-card.total mat-icon { color: #2196f3; }
+.stat-card.notif { border-color: #e91e63; }
+.stat-card.notif mat-icon { color: #e91e63; }
+
+.notif-card { border-radius: 12px !important; margin-bottom: 20px; }
+mat-card-header { display: flex; align-items: center; justify-content: space-between; }
+mat-card-header mat-card-title { display: flex; align-items: center; gap: 8px; }
+
+.notif-list { padding: 8px 0; }
+.notif-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px; border-radius: 8px; cursor: pointer;
+  transition: background 0.2s; position: relative;
+}
+.notif-item:hover { background: #f5f5f5; }
+.notif-item.unread { background: #fce4ec; }
+.notif-item mat-icon { color: #e91e63; margin-top: 2px; }
+.notif-content { flex: 1; }
+.notif-content p { margin: 0 0 4px; font-size: 14px; }
+.notif-content span { font-size: 12px; color: #888; }
+.unread-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #e91e63; flex-shrink: 0; margin-top: 6px;
+}
+
+.recent-card { border-radius: 12px !important; }
+.empty-state { text-align: center; padding: 40px; color: #888; }
+.empty-state span { font-size: 48px; display: block; margin-bottom: 12px; }
+
+.recent-list { padding: 8px 0; }
+.recent-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid #f0f0f0;
+}
+.recent-info strong { display: block; font-size: 14px; }
+.recent-info span { font-size: 12px; color: #888; }
+
+.status-chip {
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.status-chip.pendiente { background: #fff8e1; color: #f57f17; }
+.status-chip.aceptada { background: #e8f5e9; color: #2e7d32; }
+.status-chip.rechazada { background: #fde8e8; color: #c62828; }
+
+@media (max-width: 1024px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}

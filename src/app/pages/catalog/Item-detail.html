@@ -1,0 +1,89 @@
+﻿<div class="detail-container">
+
+  <div class="loading-center" *ngIf="loading">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading && post">
+
+    <!-- Back button -->
+    <div class="back-bar">
+      <button mat-button routerLink="/catalog">
+        <mat-icon>arrow_back</mat-icon> Volver al catálogo
+      </button>
+    </div>
+
+    <div class="detail-content">
+
+      <!-- Galería de fotos -->
+      <div class="gallery">
+        <div class="main-photo">
+          <img *ngIf="post.photoUrls?.length > 0"
+               [src]="post.photoUrls[selectedPhoto]" [alt]="post.itemName"/>
+          <div *ngIf="!post.photoUrls?.length" class="no-photo">
+            <mat-icon>image_not_supported</mat-icon>
+            <p>Sin fotos</p>
+          </div>
+        </div>
+        <div class="thumbnails" *ngIf="post.photoUrls?.length > 1">
+          <img *ngFor="let url of post.photoUrls; let i = index"
+               [src]="url" [class.active]="i === selectedPhoto"
+               (click)="selectedPhoto = i"/>
+        </div>
+      </div>
+
+      <!-- Info del artículo -->
+      <div class="detail-info">
+        <div class="status-badge" [class]="post.status">
+          {{ post.status | titlecase }}
+        </div>
+
+        <h1>{{ post.itemName }}</h1>
+
+        <div class="info-chips">
+          <span class="chip condition">
+            <mat-icon>star</mat-icon> {{ post.itemCondition | titlecase }}
+          </span>
+          <span class="chip zone">
+            <mat-icon>location_on</mat-icon> {{ post.zone }}
+          </span>
+          <span class="chip donor">
+            <mat-icon>person</mat-icon> {{ post.donorName }}
+          </span>
+        </div>
+
+        <div class="description-section">
+          <h3>Descripción</h3>
+          <p>{{ post.description }}</p>
+        </div>
+
+        <!-- Acciones -->
+        <div class="actions" *ngIf="post.status === 'disponible'">
+          <button mat-raised-button color="primary" class="action-btn"
+                  *ngIf="isLoggedIn() && isReceiver()"
+                  [disabled]="requesting" (click)="requestItem()">
+            <mat-spinner *ngIf="requesting" diameter="20"></mat-spinner>
+            <mat-icon *ngIf="!requesting">volunteer_activism</mat-icon>
+            <span *ngIf="!requesting">Solicitar este artículo</span>
+          </button>
+
+          <a mat-raised-button color="primary" routerLink="/register"
+             *ngIf="!isLoggedIn()">
+            <mat-icon>login</mat-icon>
+            Regístrate para solicitar
+          </a>
+
+          <p class="donor-note" *ngIf="isLoggedIn() && !isReceiver()">
+            Solo los receptores pueden solicitar artículos.
+          </p>
+        </div>
+
+        <div class="reserved-notice" *ngIf="post.status !== 'disponible'">
+          <mat-icon>info</mat-icon>
+          <span>Este artículo ya no está disponible</span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

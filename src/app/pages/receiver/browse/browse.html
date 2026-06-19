@@ -1,0 +1,110 @@
+﻿<div class="receiver-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🙏</span>
+      <h2>DonaCerca</h2>
+      <p>Panel Receptor</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a routerLink="/receiver/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </a>
+      <a routerLink="/receiver/browse" routerLinkActive="active">
+        <mat-icon>store</mat-icon> Ver catálogo
+      </a>
+      <a routerLink="/receiver/my-requests" routerLinkActive="active">
+        <mat-icon>list_alt</mat-icon> Mis solicitudes
+      </a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1>Catálogo de donaciones</h1>
+        <p>Encuentra artículos disponibles en tu zona</p>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-bar">
+      <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>Categoría</mat-label>
+        <mat-select [(ngModel)]="selectedCategory" (selectionChange)="loadPosts()">
+          <mat-option value="">Todas las categorías</mat-option>
+          <mat-option *ngFor="let cat of categories" [value]="cat.id">
+            {{ cat.name }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>Zona</mat-label>
+        <mat-select [(ngModel)]="selectedZone" (selectionChange)="loadPosts()">
+          <mat-option value="">Todas las zonas</mat-option>
+          <mat-option *ngFor="let zone of zones" [value]="zone.name">
+            📍 {{ zone.name }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button (click)="clearFilters()"
+              *ngIf="selectedCategory || selectedZone">
+        <mat-icon>clear</mat-icon> Limpiar
+      </button>
+    </div>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && posts.length === 0">
+      <span>📦</span>
+      <h3>No hay artículos disponibles</h3>
+      <p>Intenta con otros filtros o vuelve más tarde</p>
+      <button mat-stroked-button (click)="clearFilters()">Ver todos</button>
+    </div>
+
+    <div class="posts-grid" *ngIf="!loading && posts.length > 0">
+      <mat-card class="post-card" *ngFor="let post of posts">
+
+        <div class="post-image">
+          <img *ngIf="post.photoUrls?.length > 0"
+               [src]="post.photoUrls[0]" [alt]="post.itemName"/>
+          <div *ngIf="!post.photoUrls?.length" class="no-image">
+            <mat-icon>image_not_supported</mat-icon>
+          </div>
+          <span class="condition-badge" [class]="post.itemCondition">
+            {{ post.itemCondition }}
+          </span>
+        </div>
+
+        <mat-card-content>
+          <h3>{{ post.itemName }}</h3>
+          <p class="description">{{ post.description }}</p>
+          <div class="post-meta">
+            <span><mat-icon>location_on</mat-icon> {{ post.zone }}</span>
+            <span><mat-icon>person</mat-icon> {{ post.donorName }}</span>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-raised-button color="primary"
+                  (click)="requestItem(post.id)"
+                  [disabled]="requesting[post.id]">
+            <mat-spinner *ngIf="requesting[post.id]" diameter="18"></mat-spinner>
+            <mat-icon *ngIf="!requesting[post.id]">volunteer_activism</mat-icon>
+            <span *ngIf="!requesting[post.id]">Solicitar</span>
+          </button>
+          <a mat-stroked-button [routerLink]="['/catalog', post.id]">
+            <mat-icon>info</mat-icon> Detalles
+          </a>
+        </mat-card-actions>
+
+      </mat-card>
+    </div>
+  </main>
+</div>

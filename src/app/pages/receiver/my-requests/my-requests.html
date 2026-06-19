@@ -1,0 +1,96 @@
+﻿<div class="receiver-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🙏</span>
+      <h2>DonaCerca</h2>
+      <p>Panel Receptor</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a routerLink="/receiver/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </a>
+      <a routerLink="/receiver/browse" routerLinkActive="active">
+        <mat-icon>store</mat-icon> Ver catálogo
+      </a>
+      <a routerLink="/receiver/my-requests" routerLinkActive="active">
+        <mat-icon>list_alt</mat-icon> Mis solicitudes
+      </a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1>Mis solicitudes</h1>
+        <p>Estado de todos los artículos que has solicitado</p>
+      </div>
+    </div>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && requests.length === 0">
+      <span>📋</span>
+      <h3>Aún no has enviado solicitudes</h3>
+      <a mat-raised-button color="primary" routerLink="/receiver/browse">
+        Explorar catálogo
+      </a>
+    </div>
+
+    <div class="requests-list" *ngIf="!loading && requests.length > 0">
+      <mat-card class="request-card" *ngFor="let req of requests">
+        <mat-card-content>
+
+          <div class="request-header">
+            <div class="request-id">
+              <strong>Solicitud</strong>
+              <span>#{{ req.id.substring(0, 8) }}</span>
+            </div>
+            <span class="status-chip" [class]="req.status">
+              <mat-icon>{{ getStatusIcon(req.status) }}</mat-icon>
+              {{ req.status | titlecase }}
+            </span>
+          </div>
+
+          <div class="request-date">
+            <mat-icon>calendar_today</mat-icon>
+            <span>Enviada el {{ req.requestTimestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+
+          <!-- Mensaje según estado -->
+          <div class="status-message" [class]="req.status">
+            <span *ngIf="req.status === 'pendiente'">
+              ⏳ Tu solicitud está pendiente. El donante la revisará pronto.
+            </span>
+            <span *ngIf="req.status === 'aceptada'">
+              ✅ ¡Fuiste seleccionado! Revisa los datos de entrega y confirma cuando recibas el artículo.
+            </span>
+            <span *ngIf="req.status === 'rechazada'">
+              ❌ Esta solicitud no fue aceptada. El donante eligió otro receptor.
+            </span>
+            <span *ngIf="req.status === 'cancelada'">
+              🚫 Esta solicitud fue cancelada.
+            </span>
+          </div>
+
+        </mat-card-content>
+
+        <!-- Confirmar recepción si fue aceptada -->
+        <mat-card-actions *ngIf="req.status === 'aceptada'">
+          <button mat-raised-button color="primary"
+                  (click)="confirmReception(req.postId)"
+                  [disabled]="confirming[req.postId]">
+            <mat-spinner *ngIf="confirming[req.postId]" diameter="18"></mat-spinner>
+            <mat-icon *ngIf="!confirming[req.postId]">verified</mat-icon>
+            <span *ngIf="!confirming[req.postId]">Confirmar que recibí el artículo</span>
+          </button>
+        </mat-card-actions>
+
+      </mat-card>
+    </div>
+  </main>
+</div>
