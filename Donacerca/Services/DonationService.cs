@@ -110,6 +110,17 @@ public class DonationService
     private static DonationPost MapPost(DocumentSnapshot doc)
     {
         var d = doc.ToDictionary();
+
+        // ReservedAt — puede ser string vacío o Timestamp
+        DateTime? reservedAt = null;
+        if (d.ContainsKey("ReservedAt") && d["ReservedAt"] is Timestamp rts)
+            reservedAt = rts.ToDateTime();
+
+        // ClosedAt — puede ser string vacío o Timestamp
+        DateTime? closedAt = null;
+        if (d.ContainsKey("ClosedAt") && d["ClosedAt"] is Timestamp cts)
+            closedAt = cts.ToDateTime();
+
         return new DonationPost
         {
             Id = d["Id"].ToString()!,
@@ -120,32 +131,43 @@ public class DonationService
             Description = d["Description"].ToString()!,
             ItemCondition = d["ItemCondition"].ToString()!,
             Zone = d["Zone"].ToString()!,
-            PhotoUrls = d.ContainsKey("PhotoUrls") ? ((List<object>)d["PhotoUrls"]).Select(x => x.ToString()!).ToList() : new(),
+            PhotoUrls = d.ContainsKey("PhotoUrls")
+                ? ((List<object>)d["PhotoUrls"]).Select(x => x.ToString()!).ToList()
+                : new(),
             Status = d["Status"].ToString()!,
-            SelectedReceiverId = d.ContainsKey("SelectedReceiverId") ? d["SelectedReceiverId"]?.ToString() : null,
+            SelectedReceiverId = d.ContainsKey("SelectedReceiverId")
+                ? d["SelectedReceiverId"]?.ToString()
+                : null,
             IsActive = (bool)d["IsActive"],
-            CreatedAt = ((Google.Cloud.Firestore.Timestamp)d["CreatedAt"]).ToDateTime(),
-            ReservedAt = d.ContainsKey("ReservedAt") && d["ReservedAt"] != null ? ((Google.Cloud.Firestore.Timestamp)d["ReservedAt"]).ToDateTime() : null,
-            ClosedAt = d.ContainsKey("ClosedAt") && d["ClosedAt"] != null ? ((Google.Cloud.Firestore.Timestamp)d["ClosedAt"]).ToDateTime() : null,
+            CreatedAt = ((Timestamp)d["CreatedAt"]).ToDateTime(),
+            ReservedAt = reservedAt,
+            ClosedAt = closedAt
         };
     }
 
-    private static Dictionary<string, object> ToDict(DonationPost p) => new()
+    private static Dictionary<string, object> ToDict(DonationPost p)
     {
-        { "Id", p.Id },
-        { "DonorId", p.DonorId },
-        { "DonorName", p.DonorName },
-        { "CategoryId", p.CategoryId },
-        { "ItemName", p.ItemName },
-        { "Description", p.Description },
-        { "ItemCondition", p.ItemCondition },
-        { "Zone", p.Zone },
-        { "PhotoUrls", p.PhotoUrls },
-        { "Status", p.Status },
-        { "SelectedReceiverId", p.SelectedReceiverId ?? (object)string.Empty },
-        { "IsActive", p.IsActive },
-        { "CreatedAt", p.CreatedAt },
-        { "ReservedAt", p.ReservedAt ?? (object)string.Empty },
-        { "ClosedAt", p.ClosedAt ?? (object)string.Empty }
-    };
+        var dict = new Dictionary<string, object>
+        {
+            { "Id", p.Id },
+            { "DonorId", p.DonorId },
+            { "DonorName", p.DonorName },
+            { "CategoryId", p.CategoryId },
+            { "ItemName", p.ItemName },
+            { "Description", p.Description },
+            { "ItemCondition", p.ItemCondition },
+            { "Zone", p.Zone },
+            { "PhotoUrls", p.PhotoUrls },
+            { "Status", p.Status },
+            { "SelectedReceiverId", p.SelectedReceiverId ?? (object)string.Empty },
+            { "IsActive", p.IsActive },
+            { "CreatedAt", p.CreatedAt }
+        };
+
+        // Solo guardar si tienen valor real
+        if (p.ReservedAt.HasValue) dict["ReservedAt"] = p.ReservedAt.Value;
+        if (p.ClosedAt.HasValue) dict["ClosedAt"] = p.ClosedAt.Value;
+
+        return dict;
+    }
 }

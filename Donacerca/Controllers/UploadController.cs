@@ -58,7 +58,7 @@ public class UploadController : ControllerBase
             source: stream
         );
 
-        var publicUrl = $"https://storage.googleapis.com/{bucketName}/{fileName}";
+        var publicUrl = $"https://firebasestorage.googleapis.com/v0/b/{bucketName}/o/{Uri.EscapeDataString(fileName)}?alt=media";
 
         return Ok(new
         {
