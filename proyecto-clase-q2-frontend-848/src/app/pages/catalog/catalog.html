@@ -1,0 +1,216 @@
+﻿<div class="catalog-container" *ngIf="!isLoggedIn">
+
+  <section class="catalog-hero">
+    <div class="hero-content">
+      <div class="brand-card">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <div>
+        <span class="eyebrow">Catálogo comunitario</span>
+        <h1>Donaciones disponibles</h1>
+        <p>Artículos disponibles en San Pedro Sula</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a mat-stroked-button class="login-btn" routerLink="/login">Iniciar sesión</a>
+      <a mat-raised-button class="join-btn" routerLink="/register">Unirme</a>
+    </div>
+  </section>
+
+  <ng-container *ngTemplateOutlet="catalogContent"></ng-container>
+
+</div>
+
+
+<div class="donor-layout" *ngIf="isLoggedIn">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <span class="admin-badge">Panel Donante</span>
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <a
+        routerLink="/donor/dashboard"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a
+        routerLink="/donor/posts"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon>inventory_2</mat-icon>
+        <span>Mis publicaciones</span>
+      </a>
+
+      <a
+        routerLink="/donor/posts/new"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon>add_circle</mat-icon>
+        <span>Nueva publicación</span>
+      </a>
+
+      <a
+        routerLink="/catalog"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon>store</mat-icon>
+        <span>Ver catálogo</span>
+      </a>
+
+    </nav>
+
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-hero">
+      <div>
+        <span class="eyebrow">Catálogo general</span>
+        <h1>Donaciones disponibles</h1>
+        <p>Explora los artículos disponibles en la comunidad.</p>
+      </div>
+
+      <div class="hero-badge">
+        <mat-icon>store</mat-icon>
+        <span>Ver catálogo</span>
+      </div>
+    </section>
+
+    <ng-container *ngTemplateOutlet="catalogContent"></ng-container>
+
+  </main>
+
+</div>
+
+
+<ng-template #catalogContent>
+
+  <section class="filters-card">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Categoría</mat-label>
+
+      <mat-select [(ngModel)]="selectedCategory" (selectionChange)="loadPosts()">
+        <mat-option value="">Todas las categorías</mat-option>
+
+        <mat-option *ngFor="let cat of categories" [value]="cat.id ?? cat.Id">
+          {{ cat.name ?? cat.Name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Zona</mat-label>
+
+      <mat-select [(ngModel)]="selectedZone" (selectionChange)="loadPosts()">
+        <mat-option value="">Todas las zonas</mat-option>
+
+        <mat-option *ngFor="let zone of zones" [value]="zone.name">
+          📍 {{ zone.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button
+      mat-stroked-button
+      class="clear-btn"
+      (click)="clearFilters()"
+      *ngIf="selectedCategory || selectedZone">
+
+      <mat-icon>clear</mat-icon>
+      Limpiar filtros
+    </button>
+  </section>
+
+  <div class="loading-center" *ngIf="loading">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Cargando artículos...</p>
+  </div>
+
+  <div class="empty-state" *ngIf="!loading && posts.length === 0">
+    <div class="empty-icon">
+      <mat-icon>inventory_2</mat-icon>
+    </div>
+
+    <h3>No hay artículos disponibles</h3>
+    <p>Intenta con otros filtros o vuelve más tarde.</p>
+  </div>
+
+  <section class="catalog-section" *ngIf="!loading && posts.length > 0">
+
+    <div class="section-heading">
+      <div>
+        <span>Resultados</span>
+        <h2>Artículos disponibles</h2>
+      </div>
+
+      <p>{{ posts.length }} artículo(s)</p>
+    </div>
+
+    <div class="posts-grid">
+
+      <mat-card class="post-card" *ngFor="let post of posts">
+
+        <div class="post-image">
+          <img
+            *ngIf="post.photoUrls && post.photoUrls.length > 0"
+            [src]="post.photoUrls[0]"
+            [alt]="post.itemName">
+
+          <div *ngIf="!post.photoUrls || post.photoUrls.length === 0" class="no-image">
+            <mat-icon>image_not_supported</mat-icon>
+          </div>
+
+          <span class="condition-badge" [class]="post.itemCondition">
+            {{ post.itemCondition }}
+          </span>
+        </div>
+
+        <mat-card-content>
+          <h3>{{ post.itemName }}</h3>
+          <p class="description">{{ post.description }}</p>
+
+          <div class="post-meta">
+            <span>
+              <mat-icon>location_on</mat-icon>
+              {{ post.zone }}
+            </span>
+
+            <span>
+              <mat-icon>person</mat-icon>
+              {{ post.donorName }}
+            </span>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions>
+          <button mat-stroked-button class="details-btn" (click)="viewDetail(post.id)">
+            <mat-icon>info</mat-icon>
+            Ver detalles
+          </button>
+        </mat-card-actions>
+
+      </mat-card>
+
+    </div>
+
+  </section>
+
+</ng-template>

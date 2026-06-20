@@ -1,0 +1,237 @@
+﻿.role-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  background: #F9FFFF;
+}
+
+/* PANEL IZQUIERDO */
+
+.brand-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(242,111,65,.45), transparent 24%),
+    radial-gradient(circle at 80% 75%, rgba(140,180,211,.75), transparent 32%),
+    linear-gradient(135deg, #1E3A4F 0%, #4B8CB6 58%, #8CB4D3 100%);
+}
+
+.glass-card {
+  max-width: 650px;
+  padding: 48px;
+  border-radius: 36px;
+  background: rgba(255,255,255,.14);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,.25);
+  box-shadow: 0 35px 90px rgba(0,0,0,.25);
+  color: white;
+}
+
+.brand-logo {
+  width: 280px;
+  padding: 18px;
+  border-radius: 28px;
+  background: rgba(255,255,255,.95);
+  margin-bottom: 30px;
+}
+
+.brand-logo img {
+  width: 100%;
+  display: block;
+}
+
+.glass-card h1 {
+  font-size: clamp(42px, 5vw, 68px);
+  line-height: .95;
+  font-weight: 900;
+  letter-spacing: -2px;
+  margin-bottom: 22px;
+}
+
+.glass-card p {
+  font-size: 18px;
+  line-height: 1.7;
+  color: rgba(255,255,255,.88);
+}
+
+/* PANEL DERECHO */
+
+.role-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background:
+    radial-gradient(circle at top right, rgba(242,111,65,.15), transparent 30%),
+    #F9FFFF;
+}
+
+.role-main-card {
+  width: 100%;
+  max-width: 720px;
+  padding: 20px;
+  border-radius: 34px !important;
+  background: rgba(255,255,255,.97) !important;
+  box-shadow: 0 30px 80px rgba(30,58,79,.18) !important;
+  border: 1px solid #E2EDF7;
+}
+
+.header {
+  text-align: center;
+  padding: 24px 18px;
+}
+
+.logo-mark {
+  width: 150px;
+  margin: 0 auto 18px;
+  padding: 14px;
+  border-radius: 24px;
+  background: white;
+  box-shadow: 0 15px 35px rgba(30,58,79,.14);
+}
+
+.logo-mark img {
+  width: 100%;
+  display: block;
+}
+
+.header h2 {
+  font-size: 32px;
+  font-weight: 900;
+  color: #1E3A4F;
+  margin: 0 0 8px;
+}
+
+.header p {
+  color: #607D92;
+  margin: 0;
+}
+
+/* TARJETAS */
+
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 22px;
+  margin-top: 12px;
+}
+
+.role-card {
+  padding: 30px 24px;
+  border-radius: 24px;
+  border: 2px solid #E2EDF7;
+  cursor: pointer;
+  transition: .3s;
+  text-align: center;
+  background: white;
+}
+
+.role-card:hover {
+  transform: translateY(-8px);
+}
+
+.role-card.donor:hover {
+  border-color: #F26F41;
+  box-shadow: 0 18px 35px rgba(242,111,65,.25);
+}
+
+.role-card.receiver:hover {
+  border-color: #4B8CB6;
+  box-shadow: 0 18px 35px rgba(75,140,182,.25);
+}
+
+.role-icon {
+  width: 85px;
+  height: 85px;
+  margin: 0 auto 18px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donor .role-icon {
+  background: #FFF0EB;
+}
+
+.receiver .role-icon {
+  background: #EDF7FF;
+}
+
+.role-icon mat-icon {
+  font-size: 42px;
+  width: 42px;
+  height: 42px;
+}
+
+.donor .role-icon mat-icon {
+  color: #F26F41;
+}
+
+.receiver .role-icon mat-icon {
+  color: #4B8CB6;
+}
+
+.role-card h3 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1E3A4F;
+  margin-bottom: 10px;
+}
+
+.role-card p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #607D92;
+  margin-bottom: 24px;
+}
+
+.role-card button {
+  width: 100%;
+  height: 50px;
+  border-radius: 16px !important;
+  font-weight: 800;
+}
+
+.donor-btn {
+  background: linear-gradient(135deg,#F26F41,#E85E2F) !important;
+  color: white !important;
+}
+
+.receiver-btn {
+  background: linear-gradient(135deg,#4B8CB6,#1E3A4F) !important;
+  color: white !important;
+}
+
+.loading-center {
+  text-align: center;
+  padding: 24px;
+  color: #607D92;
+}
+
+.loading-center p {
+  margin-top: 12px;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 950px) {
+
+  .role-page {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-panel {
+    display: none;
+  }
+
+  .roles-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-panel {
+    min-height: 100vh;
+  }
+}

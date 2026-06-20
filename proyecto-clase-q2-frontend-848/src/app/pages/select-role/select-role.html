@@ -1,0 +1,83 @@
+﻿<div class="role-page">
+
+  <section class="brand-panel">
+    <div class="glass-card">
+
+      <div class="brand-logo">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <h1>Elige cómo quieres ayudar o recibir apoyo</h1>
+
+      <p>
+        DonaCerca adapta tu experiencia según el rol que elijas dentro de la comunidad.
+      </p>
+
+    </div>
+  </section>
+
+  <section class="role-panel">
+
+    <mat-card class="role-main-card">
+
+      <div class="header">
+        <div class="logo-mark">
+          <img src="/logo-donacerca.png" alt="DonaCerca">
+        </div>
+
+        <h2>Selecciona tu rol</h2>
+        <p>Escoge cómo quieres usar DonaCerca.</p>
+      </div>
+
+      <mat-card-content>
+
+        <div class="roles-grid">
+
+          <div class="role-card donor" (click)="selectRole('donor')" [class.disabled]="loading">
+            <div class="role-icon">
+              <mat-icon>volunteer_activism</mat-icon>
+            </div>
+
+            <h3>Soy Donante</h3>
+
+            <p>
+              Quiero donar artículos que ya no uso a personas que los necesitan en mi comunidad.
+            </p>
+
+            <button mat-raised-button class="donor-btn" [disabled]="loading">
+              <mat-icon>redeem</mat-icon>
+              Quiero donar
+            </button>
+          </div>
+
+          <div class="role-card receiver" (click)="selectRole('receiver')" [class.disabled]="loading">
+            <div class="role-icon">
+              <mat-icon>favorite</mat-icon>
+            </div>
+
+            <h3>Soy Receptor</h3>
+
+            <p>
+              Quiero encontrar artículos donados que necesito en mi zona de San Pedro Sula.
+            </p>
+
+            <button mat-raised-button class="receiver-btn" [disabled]="loading">
+              <mat-icon>search</mat-icon>
+              Quiero recibir
+            </button>
+          </div>
+
+        </div>
+
+        <div class="loading-center" *ngIf="loading">
+          <mat-spinner diameter="30"></mat-spinner>
+          <p>Configurando tu cuenta...</p>
+        </div>
+
+      </mat-card-content>
+
+    </mat-card>
+
+  </section>
+
+</div>

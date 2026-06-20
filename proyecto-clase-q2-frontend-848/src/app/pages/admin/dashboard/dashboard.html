@@ -1,0 +1,351 @@
+﻿<div class="admin-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+      <span class="admin-badge">Panel Administrador</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/admin/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/admin/categories" routerLinkActive="active">
+        <mat-icon>category</mat-icon>
+        <span>Categorías</span>
+      </a>
+
+      <a routerLink="/admin/moderation" routerLinkActive="active">
+        <mat-icon>manage_search</mat-icon>
+        <span>Moderación</span>
+      </a>
+
+      <a routerLink="/admin/history" routerLinkActive="active">
+        <mat-icon>history</mat-icon>
+        <span>Historial</span>
+      </a>
+    </nav>
+
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+  </aside>
+
+  <main class="main-content">
+
+    <section class="dashboard-hero">
+      <div>
+        <span class="eyebrow">Centro de control</span>
+        <h1>Dashboard Administrativo</h1>
+        <p>Bienvenida, {{ userName }}. Monitorea publicaciones, solicitudes, donaciones y reportes de impacto.</p>
+      </div>
+
+      <div class="hero-badge">
+        <mat-icon>admin_panel_settings</mat-icon>
+        <span>Gestión DonaCerca</span>
+      </div>
+    </section>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="52"></mat-spinner>
+      <p>Cargando información del dashboard...</p>
+    </div>
+
+    <div *ngIf="!loading && stats">
+
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <span>Resumen general</span>
+            <h2>Total de publicaciones y donaciones</h2>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <mat-card class="stat-card active">
+            <div class="stat-icon">
+              <mat-icon>inventory_2</mat-icon>
+            </div>
+            <div>
+              <span class="stat-number">{{ stats.activePosts }}</span>
+              <span class="stat-label">Publicaciones activas</span>
+            </div>
+          </mat-card>
+
+          <mat-card class="stat-card completed">
+            <div class="stat-icon">
+              <mat-icon>volunteer_activism</mat-icon>
+            </div>
+            <div>
+              <span class="stat-number">{{ stats.completedDonations }}</span>
+              <span class="stat-label">Donaciones completadas</span>
+            </div>
+          </mat-card>
+
+          <mat-card class="stat-card pending">
+            <div class="stat-icon">
+              <mat-icon>pending_actions</mat-icon>
+            </div>
+            <div>
+              <span class="stat-number">{{ stats.pendingRequests }}</span>
+              <span class="stat-label">Solicitudes pendientes</span>
+            </div>
+          </mat-card>
+
+          <mat-card class="stat-card rate">
+            <div class="stat-icon">
+              <mat-icon>trending_up</mat-icon>
+            </div>
+            <div>
+              <span class="stat-number">{{ stats.completionRate }}%</span>
+              <span class="stat-label">Tasa de completación</span>
+            </div>
+          </mat-card>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <span>Análisis por categoría</span>
+            <h2>Categorías más publicadas</h2>
+          </div>
+        </div>
+
+        <mat-card class="table-card">
+          <mat-card-content>
+            <table class="data-table">
+              <thead>
+              <tr>
+                <th>#</th>
+                <th>Categoría</th>
+                <th>Artículos publicados</th>
+                <th>Popularidad</th>
+              </tr>
+              </thead>
+
+              <tbody>
+              <tr *ngFor="let entry of getCategoryEntries(); let i = index">
+                <td>
+                  <span class="rank-badge">{{ i + 1 }}</span>
+                </td>
+
+                <td>
+                  <strong>{{ entry.key }}</strong>
+                </td>
+
+                <td>{{ entry.value }}</td>
+
+                <td>
+                  <div class="mini-bar">
+                    <div class="mini-bar-fill"
+                         [style.width.%]="stats!.totalPosts > 0 ? (entry.value / stats!.totalPosts) * 100 : 0">
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr *ngIf="getCategoryEntries().length === 0">
+                <td colspan="4" class="empty">Sin datos</td>
+              </tr>
+              </tbody>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <section class="charts-grid">
+        <mat-card class="chart-card">
+          <div class="card-title">
+            <div>
+              <span>Visualización</span>
+              <h2>Gráfico de barras por categoría</h2>
+            </div>
+          </div>
+
+          <mat-card-content>
+            <canvas id="barChart"></canvas>
+          </mat-card-content>
+        </mat-card>
+
+        <mat-card class="chart-card pie-card">
+          <div class="card-title">
+            <div>
+              <span>Estados</span>
+              <h2>Distribución por publicación</h2>
+            </div>
+          </div>
+
+          <mat-card-content>
+            <canvas id="pieChart"></canvas>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <section class="section">
+        <mat-card class="chart-card">
+          <div class="card-title with-select">
+            <div>
+              <span>Tendencia temporal</span>
+              <h2>Donaciones completadas</h2>
+            </div>
+
+            <mat-form-field appearance="outline" class="period-field">
+              <mat-select [(ngModel)]="trendPeriod" (selectionChange)="loadTrend()">
+                <mat-option value="week">Por semana</mat-option>
+                <mat-option value="month">Por mes</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <mat-card-content>
+            <canvas id="trendChart"></canvas>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <span>Filtros inteligentes</span>
+            <h2>Tabla de resultados filtrable</h2>
+          </div>
+        </div>
+
+        <mat-card class="filter-card">
+          <mat-card-content>
+
+            <div class="filter-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Categoría</mat-label>
+                <mat-select [(ngModel)]="filterCategory">
+                  <mat-option value="">Todas las categorías</mat-option>
+                  <mat-option *ngFor="let cat of categories" [value]="cat.id ?? cat.Id">
+                    {{ cat.name ?? cat.Name }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Zona</mat-label>
+                <mat-select [(ngModel)]="filterZone">
+                  <mat-option value="">Todas las zonas</mat-option>
+                  <mat-option *ngFor="let zone of zones" [value]="zone.name ?? zone.Name">
+                    {{ zone.name ?? zone.Name }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Desde</mat-label>
+                <input matInput type="date" [(ngModel)]="filterFrom">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Hasta</mat-label>
+                <input matInput type="date" [(ngModel)]="filterTo">
+              </mat-form-field>
+
+              <button mat-raised-button class="apply-btn" (click)="applyFilters()">
+                <mat-icon>search</mat-icon>
+                Aplicar
+              </button>
+
+              <button mat-stroked-button class="clear-btn" (click)="clearFilters()">
+                <mat-icon>clear</mat-icon>
+                Limpiar
+              </button>
+            </div>
+
+            <div class="active-filters" *ngIf="filterCategory || filterZone || filterFrom || filterTo">
+              <span class="filter-tag" *ngIf="filterCategory">
+                <mat-icon>category</mat-icon>
+                Categoría seleccionada
+              </span>
+
+              <span class="filter-tag" *ngIf="filterZone">
+                <mat-icon>location_on</mat-icon>
+                {{ filterZone }}
+              </span>
+
+              <span class="filter-tag" *ngIf="filterFrom">
+                <mat-icon>date_range</mat-icon>
+                Desde: {{ filterFrom }}
+              </span>
+
+              <span class="filter-tag" *ngIf="filterTo">
+                <mat-icon>date_range</mat-icon>
+                Hasta: {{ filterTo }}
+              </span>
+            </div>
+
+            <div class="filter-results">
+              <table class="result-table">
+                <thead>
+                <tr>
+                  <th>Total publicaciones</th>
+                  <th>Publicaciones activas</th>
+                  <th>Disponibles</th>
+                  <th>Entregados</th>
+                  <th>Reservados</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr>
+                  <td><strong>{{ stats.totalPosts }}</strong></td>
+                  <td><strong>{{ stats.activePosts }}</strong></td>
+                  <td><span class="badge disponible">{{ stats.byStatus['disponible'] || 0 }}</span></td>
+                  <td><span class="badge entregado">{{ stats.byStatus['entregado'] || 0 }}</span></td>
+                  <td><span class="badge reservado">{{ stats.byStatus['reservado'] || 0 }}</span></td>
+                </tr>
+
+                <tr *ngIf="stats.totalPosts === 0">
+                  <td colspan="5" class="empty">Sin resultados para los filtros seleccionados</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <section class="section">
+        <mat-card class="quick-actions">
+          <div class="card-title">
+            <div>
+              <span>Accesos rápidos</span>
+              <h2>Acciones administrativas</h2>
+            </div>
+          </div>
+
+          <mat-card-content>
+            <div class="actions-grid">
+              <a mat-raised-button class="quick-btn primary" routerLink="/admin/categories">
+                <mat-icon>category</mat-icon>
+                Gestionar categorías
+              </a>
+
+              <a mat-raised-button class="quick-btn accent" routerLink="/admin/moderation">
+                <mat-icon>manage_search</mat-icon>
+                Moderar publicaciones
+              </a>
+
+              <a mat-raised-button class="quick-btn soft" routerLink="/admin/history">
+                <mat-icon>history</mat-icon>
+                Ver historial
+              </a>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+    </div>
+  </main>
+</div>

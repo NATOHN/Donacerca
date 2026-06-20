@@ -1,0 +1,226 @@
+﻿<div class="donor-layout">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <span class="admin-badge">Panel Donante</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/donor/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/donor/posts" routerLinkActive="active">
+        <mat-icon>inventory_2</mat-icon>
+        <span>Mis publicaciones</span>
+      </a>
+
+      <a routerLink="/donor/posts/new" routerLinkActive="active">
+        <mat-icon>add_circle</mat-icon>
+        <span>Nueva publicación</span>
+      </a>
+
+      <a routerLink="/catalog" routerLinkActive="active">
+        <mat-icon>store</mat-icon>
+        <span>Ver catálogo</span>
+      </a>
+    </nav>
+
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-hero">
+      <div>
+        <span class="eyebrow">Comunidad DonaCerca</span>
+        <h1>¡Hola, {{ userName }}! 👋</h1>
+        <p>Gracias por ayudar a personas que necesitan apoyo en tu comunidad.</p>
+      </div>
+
+      <div class="header-actions">
+
+        <button mat-icon-button [matMenuTriggerFor]="notifMenu" class="bell-btn">
+          <mat-icon [matBadge]="unreadCount"
+                    matBadgeColor="warn"
+                    matBadgeSize="medium"
+                    [matBadgeHidden]="unreadCount === 0">
+            notifications
+          </mat-icon>
+        </button>
+
+        <a mat-raised-button class="primary-action" routerLink="/donor/posts/new">
+          <mat-icon>add</mat-icon>
+          Nueva publicación
+        </a>
+
+      </div>
+    </section>
+
+    <mat-menu #notifMenu="matMenu" xPosition="before">
+      <div class="notif-header" (click)="$event.stopPropagation()">
+        <strong>Notificaciones</strong>
+        <span *ngIf="unreadCount > 0" class="unread-count">
+          {{ unreadCount }} nuevas
+        </span>
+      </div>
+
+      <div *ngIf="notifications.length === 0"
+           class="notif-empty"
+           (click)="$event.stopPropagation()">
+        Sin notificaciones
+      </div>
+
+      <div *ngFor="let n of notifications"
+           class="notif-item"
+           [class.unread]="!n.isRead && !n.IsRead"
+           (click)="markAsRead(n.id ?? n.Id); $event.stopPropagation()">
+
+        <mat-icon class="notif-icon">
+          {{ getNotificationIcon(n.type ?? n.Type) }}
+        </mat-icon>
+
+        <div class="notif-text">
+          <p>{{ n.message ?? n.Message }}</p>
+          <small>{{ (n.createdAt ?? n.CreatedAt) | date:'dd/MM/yyyy HH:mm' }}</small>
+        </div>
+      </div>
+    </mat-menu>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Cargando información...</p>
+    </div>
+
+    <div *ngIf="!loading">
+
+      <section class="stats-grid">
+
+        <mat-card class="stat-card active">
+          <div class="stat-icon">
+            <mat-icon>inventory_2</mat-icon>
+          </div>
+
+          <div>
+            <span class="stat-number">{{ activePosts }}</span>
+            <span class="stat-label">Disponibles</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card reserved">
+          <div class="stat-icon">
+            <mat-icon>bookmark</mat-icon>
+          </div>
+
+          <div>
+            <span class="stat-number">{{ reservedPosts }}</span>
+            <span class="stat-label">Reservados</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card completed">
+          <div class="stat-icon">
+            <mat-icon>volunteer_activism</mat-icon>
+          </div>
+
+          <div>
+            <span class="stat-number">{{ completedPosts }}</span>
+            <span class="stat-label">Entregados</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card total">
+          <div class="stat-icon">
+            <mat-icon>list_alt</mat-icon>
+          </div>
+
+          <div>
+            <span class="stat-number">{{ posts.length }}</span>
+            <span class="stat-label">Total publicaciones</span>
+          </div>
+        </mat-card>
+
+      </section>
+
+      <mat-card class="recent-card">
+
+        <div class="section-heading">
+          <div>
+            <span>Actividad reciente</span>
+            <h2>Publicaciones recientes</h2>
+          </div>
+
+          <a mat-button class="link-action" routerLink="/donor/posts">
+            Ver todas
+          </a>
+        </div>
+
+        <mat-card-content>
+
+          <div class="empty-state" *ngIf="posts.length === 0">
+            <div class="empty-icon">
+              <mat-icon>inventory_2</mat-icon>
+            </div>
+
+            <p>Aún no tienes publicaciones</p>
+
+            <a mat-raised-button class="primary-action" routerLink="/donor/posts/new">
+              Crear primera publicación
+            </a>
+          </div>
+
+          <div class="recent-list" *ngIf="posts.length > 0">
+
+            <div class="recent-item"
+                 *ngFor="let post of posts.slice(0, 5)"
+                 [routerLink]="['/donor/posts']"
+                 [queryParams]="{ highlight: post.id }">
+
+              <img *ngIf="post.photoUrls && post.photoUrls.length > 0"
+                   [src]="post.photoUrls[0]"
+                   class="recent-thumb"
+                   [alt]="post.itemName">
+
+              <div class="no-thumb" *ngIf="!post.photoUrls || post.photoUrls.length === 0">
+                <mat-icon>image_not_supported</mat-icon>
+              </div>
+
+              <div class="recent-info">
+                <strong>{{ post.itemName }}</strong>
+                <span>{{ post.zone }}</span>
+              </div>
+
+              <span class="status-chip" [class]="post.status">
+                {{ post.status | titlecase }}
+              </span>
+
+              <a mat-icon-button
+                 [routerLink]="['/donor/requests', post.id]"
+                 *ngIf="post.status === 'disponible' || post.status === 'reservado'"
+                 (click)="$event.stopPropagation()">
+                <mat-icon>people</mat-icon>
+              </a>
+
+            </div>
+
+          </div>
+
+        </mat-card-content>
+
+      </mat-card>
+
+    </div>
+
+  </main>
+
+</div>

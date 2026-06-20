@@ -1,0 +1,279 @@
+﻿<div class="donor-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <span class="admin-badge">Panel Donante</span>
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <a routerLink="/donor/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/donor/posts" routerLinkActive="active">
+        <mat-icon>inventory_2</mat-icon>
+        <span>Mis publicaciones</span>
+      </a>
+
+      <a routerLink="/donor/posts/new" routerLinkActive="active">
+        <mat-icon>add_circle</mat-icon>
+        <span>Nueva publicación</span>
+      </a>
+
+    </nav>
+
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+
+  </aside>
+
+  <!-- CONTENIDO -->
+  <main class="main-content">
+
+    <!-- HEADER -->
+    <section class="hero-header">
+
+      <div>
+        <span class="eyebrow">GESTIÓN DE DONACIONES</span>
+        <h1>Coordinar entrega</h1>
+        <p>Registra y confirma la entrega del artículo</p>
+      </div>
+
+      <a mat-stroked-button routerLink="/donor/posts" class="back-btn">
+        <mat-icon>arrow_back</mat-icon>
+        Volver
+      </a>
+
+    </section>
+
+    <!-- STEPPER -->
+    <mat-stepper orientation="vertical" class="delivery-stepper">
+
+      <!-- PASO 1 -->
+      <mat-step [completed]="deliveryCreated">
+
+        <ng-template matStepLabel>
+          Registrar datos de entrega
+        </ng-template>
+
+        <mat-card class="step-card" *ngIf="!deliveryCreated">
+
+          <mat-card-content>
+
+            <form [formGroup]="form">
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Fecha y hora de entrega</mat-label>
+
+                <input
+                  matInput
+                  type="datetime-local"
+                  formControlName="deliveryDate">
+
+                <mat-icon matSuffix>event</mat-icon>
+
+                <mat-error>
+                  Selecciona fecha y hora
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+
+                <mat-label>Zona de entrega</mat-label>
+
+                <mat-select formControlName="zone">
+
+                  <mat-option
+                    *ngFor="let zone of zones"
+                    [value]="zone.name">
+
+                    📍 {{ zone.name }} — {{ zone.reference }}
+
+                  </mat-option>
+
+                </mat-select>
+
+                <mat-error>
+                  Selecciona una zona
+                </mat-error>
+
+              </mat-form-field>
+
+              <div
+                class="zone-address"
+                *ngIf="form.get('zone')?.value">
+
+                <mat-icon>location_on</mat-icon>
+
+                <span>
+                  {{ getSelectedZoneAddress() }}
+                </span>
+
+              </div>
+
+              <button
+                mat-raised-button
+                color="primary"
+                class="step-btn"
+                (click)="createDelivery()"
+                [disabled]="form.invalid || loading">
+
+                <mat-spinner
+                  *ngIf="loading"
+                  diameter="20">
+                </mat-spinner>
+
+                <mat-icon *ngIf="!loading">
+                  save
+                </mat-icon>
+
+                <span *ngIf="!loading">
+                  Registrar entrega
+                </span>
+
+              </button>
+
+            </form>
+
+          </mat-card-content>
+
+        </mat-card>
+
+        <div
+          class="step-done"
+          *ngIf="deliveryCreated">
+
+          <mat-icon>check_circle</mat-icon>
+
+          <span>
+            Entrega registrada — {{ deliveryLocation }}
+          </span>
+
+        </div>
+
+      </mat-step>
+
+      <!-- PASO 2 -->
+      <mat-step [completed]="donorConfirmed">
+
+        <ng-template matStepLabel>
+          Confirmar entrega realizada
+        </ng-template>
+
+        <mat-card
+          class="step-card"
+          *ngIf="deliveryCreated && !donorConfirmed">
+
+          <mat-card-content>
+
+            <p>
+              Una vez que hayas entregado el artículo
+              en la sucursal seleccionada,
+              confirma aquí para continuar el proceso.
+            </p>
+
+            <button
+              mat-raised-button
+              color="primary"
+              class="step-btn"
+              (click)="confirmDelivery()"
+              [disabled]="confirming">
+
+              <mat-spinner
+                *ngIf="confirming"
+                diameter="20">
+              </mat-spinner>
+
+              <mat-icon *ngIf="!confirming">
+                verified
+              </mat-icon>
+
+              <span *ngIf="!confirming">
+                Confirmar que entregué el artículo
+              </span>
+
+            </button>
+
+          </mat-card-content>
+
+        </mat-card>
+
+        <div
+          class="step-done"
+          *ngIf="donorConfirmed">
+
+          <mat-icon>check_circle</mat-icon>
+
+          <span>
+            ¡Entrega confirmada! Esperando la validación del receptor.
+          </span>
+
+        </div>
+
+      </mat-step>
+
+      <!-- PASO 3 -->
+      <mat-step [completed]="receiverConfirmed">
+
+        <ng-template matStepLabel>
+          Receptor confirma recepción
+        </ng-template>
+
+        <div
+          class="waiting-receiver"
+          *ngIf="donorConfirmed && !receiverConfirmed">
+
+          <mat-icon>
+            hourglass_empty
+          </mat-icon>
+
+          <h3>
+            Esperando confirmación
+          </h3>
+
+          <p>
+            El receptor debe confirmar que recibió
+            correctamente el artículo para finalizar
+            la donación.
+          </p>
+
+          <a
+            mat-stroked-button
+            routerLink="/donor/posts">
+
+            Ver mis publicaciones
+
+          </a>
+
+        </div>
+
+        <div
+          class="step-done"
+          *ngIf="receiverConfirmed">
+
+          <mat-icon>check_circle</mat-icon>
+
+          <span>
+            🎉 ¡Donación completada!
+            El receptor confirmó la recepción del artículo.
+          </span>
+
+        </div>
+
+      </mat-step>
+
+    </mat-stepper>
+
+  </main>
+
+</div>
