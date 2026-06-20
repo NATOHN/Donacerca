@@ -13,11 +13,10 @@ public class ExpiredPostsJob : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Revisar cada 24 horas
         while (!stoppingToken.IsCancellationRequested)
         {
             await CheckExpiredPosts();
-            await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
     }
 
@@ -25,8 +24,9 @@ public class ExpiredPostsJob : BackgroundService
     {
         using var scope = _services.CreateScope();
         var firebase = scope.ServiceProvider.GetRequiredService<FirebaseService>();
+        var notificationService = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
-        var cutoff = DateTime.UtcNow.AddDays(-30);
+        var cutoff = DateTime.UtcNow.AddDays(-2);
         var snap = await firebase.GetCollection("donationPosts")
             .WhereEqualTo("Status", "disponible")
             .WhereEqualTo("IsActive", true)
@@ -42,15 +42,28 @@ public class ExpiredPostsJob : BackgroundService
 
         foreach (var doc in expired)
         {
+            var data = doc.ToDictionary();
+            var donorId = data["DonorId"].ToString()!;
+            var itemName = data["ItemName"].ToString()!;
+            var postId = data["Id"].ToString()!;
+
             await firebase.GetCollection("donationPosts").Document(doc.Id)
                 .UpdateAsync(new Dictionary<string, object>
                 {
                     { "Status", "vencido" },
                     { "IsActive", false }
                 });
+
+            await notificationService.CreateAsync(
+                donorId,
+                "expired",
+                $"Tu publicación '{itemName}' ha vencido. Puedes renovarla o cerrarla desde Mis publicaciones.",
+                postId
+            );
+
             _logger.LogInformation("Publicación vencida: {Id}", doc.Id);
         }
 
-        _logger.LogInformation("Job de vencimiento ejecutado. {Count} publicaciones vencidas.", expired.Count);
+        _logger.LogInformation("Job ejecutado. {Count} publicaciones vencidas.", expired.Count);
     }
 }

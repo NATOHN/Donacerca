@@ -11,13 +11,12 @@ namespace Donacerca.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AuthService _authService;
-    
-    private readonly IWebHostEnvironment _env; // ← agregar esto
+    private readonly IWebHostEnvironment _env;
 
     public AuthController(AuthService authService, IWebHostEnvironment env)
     {
         _authService = authService;
-        _env = env; // ← agregar esto
+        _env = env;
     }
 
     [HttpPost("register")]
@@ -55,8 +54,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
-    
-    // Ver perfil propio
+
     [HttpGet("profile")]
     [Authorize]
     public async Task<IActionResult> GetProfile()
@@ -67,17 +65,23 @@ public class AuthController : ControllerBase
         return Ok(new { user.Id, user.FullName, user.Email, user.Zone, user.Roles });
     }
 
-// Actualizar zona o nombre
     [HttpPut("profile")]
     [Authorize]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
         await _authService.UpdateProfile(userId, dto);
+
+        // Si se actualizó el rol, generar nuevo token
+        if (dto.Roles != null && dto.Roles.Count > 0)
+        {
+            var result = await _authService.GenerateNewTokenAsync(userId);
+            return Ok(result);
+        }
+
         return Ok(new { message = "Perfil actualizado" });
     }
 
-// Crear primer admin (solo en desarrollo, protegido con una clave)
     [HttpPost("seed-admin")]
     public async Task<IActionResult> SeedAdmin([FromQuery] string secret)
     {
@@ -93,7 +97,7 @@ public class AuthController : ControllerBase
         });
         return Ok(new { message = "Admin creado", user.Email });
     }
-    
+
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
     {
@@ -101,7 +105,6 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
-// Cerrar sesión — invalida el refresh token
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout()
@@ -111,16 +114,13 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Sesión cerrada correctamente" });
     }
 
-// Solicitar reset de contraseña
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
     {
         await _authService.ForgotPasswordAsync(dto.Email);
-        // Siempre respondemos igual por seguridad
         return Ok(new { message = "Si el email existe recibirás instrucciones para restablecer tu contraseña" });
     }
 
-// Restablecer contraseña con el token
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
     {
@@ -128,15 +128,27 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Contraseña restablecida correctamente" });
     }
 
-// Ver token de reset (solo para demo/desarrollo)
     [HttpGet("reset-token/{email}")]
     public async Task<IActionResult> GetResetToken(string email)
     {
-        // Usamos IWebHostEnvironment en lugar de "app"
         if (!_env.IsDevelopment())
             return NotFound();
 
         var token = await _authService.GetResetTokenForDemo(email);
         return Ok(token);
+    }
+
+    [HttpPost("google-login")]
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto dto)
+    {
+        try
+        {
+            var result = await _authService.GoogleLoginAsync(dto.IdToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

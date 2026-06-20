@@ -17,7 +17,6 @@ public class DonationPostController : ControllerBase
         _donationService = donationService;
     }
 
-    // Público: catálogo con filtros opcionales
     [HttpGet]
     public async Task<IActionResult> GetAvailable([FromQuery] string? categoryId, [FromQuery] string? zone) =>
         Ok(await _donationService.GetAvailableAsync(categoryId, zone));
@@ -29,7 +28,6 @@ public class DonationPostController : ControllerBase
         return post == null ? NotFound() : Ok(post);
     }
 
-    // Mis publicaciones (donante)
     [HttpGet("my")]
     [Authorize]
     public async Task<IActionResult> GetMine()
@@ -38,17 +36,29 @@ public class DonationPostController : ControllerBase
         return Ok(await _donationService.GetByDonorAsync(userId));
     }
 
-    // Admin: ver todas las publicaciones activas
+    [HttpGet("receiver-stats")]
+    [Authorize]
+    public async Task<IActionResult> GetReceiverStats()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        return Ok(await _donationService.GetReceiverStatsAsync(userId));
+    }
+
     [HttpGet("all")]
     [Authorize(Roles = "admin")]
     public async Task<IActionResult> GetAll() =>
         Ok(await _donationService.GetAllActiveAsync());
 
+    [HttpGet("moderation")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> GetForModeration() =>
+        Ok(await _donationService.GetAllForModerationAsync());
+
     [HttpPost]
     [Authorize]
     public async Task<IActionResult> Create([FromBody] CreateDonationPostDto dto)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        var userId   = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
         var userName = User.FindFirst(ClaimTypes.Name)?.Value
                     ?? User.FindFirst(ClaimTypes.Email)?.Value ?? "Usuario";
         return Ok(await _donationService.CreateAsync(dto, userId, userName));
@@ -65,14 +75,14 @@ public class DonationPostController : ControllerBase
             return result == null ? NotFound() : Ok(result);
         }
         catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
-        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex)   { return BadRequest(new { message = ex.Message }); }
     }
 
     [HttpDelete("{id}")]
     [Authorize]
     public async Task<IActionResult> Deactivate(string id)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        var userId  = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
         var isAdmin = User.IsInRole("admin");
         try
         {
@@ -80,6 +90,21 @@ public class DonationPostController : ControllerBase
             return NoContent();
         }
         catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
-        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (KeyNotFoundException ex)        { return NotFound(new { message = ex.Message }); }
+    }
+
+    [HttpPatch("{id}/reactivate")]
+    [Authorize]
+    public async Task<IActionResult> Reactivate(string id)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        try
+        {
+            await _donationService.ReactivateAsync(id, userId);
+            return Ok(new { message = "Publicación reactivada" });
+        }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        catch (InvalidOperationException ex)   { return BadRequest(new { message = ex.Message }); }
+        catch (KeyNotFoundException ex)        { return NotFound(new { message = ex.Message }); }
     }
 }

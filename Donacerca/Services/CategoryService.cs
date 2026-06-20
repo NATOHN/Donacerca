@@ -16,7 +16,32 @@ public class CategoryService
     public async Task<List<Category>> GetAllAsync()
     {
         var snap = await _firebase.GetCollection("categories").GetSnapshotAsync();
-        return snap.Documents.Select(MapCategory).ToList();
+        var categories = snap.Documents.Select(MapCategory).ToList();
+
+        // Contar artículos activos por categoría
+        var postsSnap = await _firebase.GetCollection("donationPosts")
+            .WhereEqualTo("IsActive", true)
+            .WhereEqualTo("Status", "disponible")
+            .GetSnapshotAsync();
+
+        var countByCat = new Dictionary<string, int>();
+        foreach (var doc in postsSnap.Documents)
+        {
+            var d = doc.ToDictionary();
+            var catId = d.ContainsKey("CategoryId") ? d["CategoryId"].ToString()! : "";
+            if (!string.IsNullOrEmpty(catId))
+            {
+                if (!countByCat.ContainsKey(catId)) countByCat[catId] = 0;
+                countByCat[catId]++;
+            }
+        }
+
+        foreach (var cat in categories)
+        {
+            cat.ActiveItemsCount = countByCat.ContainsKey(cat.Id) ? countByCat[cat.Id] : 0;
+        }
+
+        return categories;
     }
 
     public async Task<Category?> GetByIdAsync(string id)
@@ -61,6 +86,7 @@ public class CategoryService
             Name = d["Name"].ToString()!,
             Description = d["Description"].ToString()!,
             IsActive = (bool)d["IsActive"],
+            ActiveItemsCount = 0,
             CreatedAt = ((Google.Cloud.Firestore.Timestamp)d["CreatedAt"]).ToDateTime()
         };
     }

@@ -8,15 +8,14 @@ public class DonationPost
     public string CategoryId { get; set; } = string.Empty;
     public string ItemName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    // "nuevo" | "buen estado" | "uso regular"
     public string ItemCondition { get; set; } = string.Empty;
     public string Zone { get; set; } = string.Empty;
     public List<string> PhotoUrls { get; set; } = new();
-    // "disponible" | "reservado" | "entregado" | "vencido"
     public string Status { get; set; } = "disponible";
     public string? SelectedReceiverId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReservedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool DeactivatedByAdmin { get; set; } = false;
 }

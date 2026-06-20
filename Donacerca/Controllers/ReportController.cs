@@ -17,8 +17,17 @@ public class ReportController : ControllerBase
     }
 
     [HttpGet("dashboard")]
-    public async Task<IActionResult> GetDashboard() =>
-        Ok(await _reportService.GetDashboardStatsAsync());
+    public async Task<IActionResult> GetDashboard(
+        [FromQuery] string? categoryId = null,
+        [FromQuery] string? zone = null,
+        [FromQuery] string? from = null,
+        [FromQuery] string? to = null)
+    {
+        DateTime? fromDate = string.IsNullOrEmpty(from) ? null : DateTime.Parse(from);
+        DateTime? toDate = string.IsNullOrEmpty(to) ? null : DateTime.Parse(to).AddDays(1);
+
+        return Ok(await _reportService.GetDashboardStatsAsync(categoryId, zone, fromDate, toDate));
+    }
 
     [HttpGet("trend")]
     public async Task<IActionResult> GetTrend([FromQuery] string period = "week") =>

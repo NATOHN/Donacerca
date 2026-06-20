@@ -33,7 +33,6 @@ public class AuthService
         if (existing.Count > 0)
             throw new Exception("Ya existe un usuario con ese correo");
 
-        // Admin solo puede venir del seed-admin, usuarios normales solo donor/receiver
         List<string> rolesValidos;
 
         if (dto.Roles.Contains("admin"))
@@ -188,8 +187,25 @@ public class AuthService
         var updates = new Dictionary<string, object>();
         if (dto.FullName != null) updates["FullName"] = dto.FullName;
         if (dto.Zone != null) updates["Zone"] = dto.Zone;
+        if (dto.Roles != null && dto.Roles.Count > 0) updates["Roles"] = dto.Roles;
         if (updates.Count > 0)
             await _firebaseService.GetCollection("users").Document(userId).UpdateAsync(updates);
+    }
+
+    public async Task<object> GenerateNewTokenAsync(string userId)
+    {
+        var user = await GetById(userId)
+            ?? throw new KeyNotFoundException("Usuario no encontrado");
+
+        var refreshToken = await CreateRefreshTokenAsync(userId);
+        var jwt = GenerateToken(user);
+
+        return new
+        {
+            Token = jwt,
+            RefreshToken = refreshToken,
+            User = new { user.Id, user.FullName, user.Email, user.Zone, user.Roles }
+        };
     }
 
     // ─── REFRESH TOKEN ────────────────────────────────────────────────
@@ -262,67 +278,87 @@ public class AuthService
     // ─── RECUPERACIÓN DE CONTRASEÑA ──────────────────────────────────
 
     public async Task ForgotPasswordAsync(string email)
-{
-    var snap = await _firebaseService.GetCollection("users")
-        .WhereEqualTo("Email", email)
-        .GetSnapshotAsync();
+    {
+        var snap = await _firebaseService.GetCollection("users")
+            .WhereEqualTo("Email", email)
+            .GetSnapshotAsync();
 
-    // Siempre respondemos igual aunque no exista (seguridad)
-    if (snap.Count == 0) return;
+        if (snap.Count == 0) return;
 
-    var userId = snap.Documents[0].ToDictionary()["Id"].ToString()!;
-    var fullName = snap.Documents[0].ToDictionary()["FullName"].ToString()!;
+        var userId = snap.Documents[0].ToDictionary()["Id"].ToString()!;
+        var fullName = snap.Documents[0].ToDictionary()["FullName"].ToString()!;
 
-    var resetToken = Convert.ToBase64String(
-        RandomNumberGenerator.GetBytes(32));
+        var resetToken = Convert.ToBase64String(
+            RandomNumberGenerator.GetBytes(32));
 
-    await _firebaseService.GetCollection("passwordResets")
-        .Document(Guid.NewGuid().ToString())
-        .SetAsync(new Dictionary<string, object>
+        await _firebaseService.GetCollection("passwordResets")
+            .Document(Guid.NewGuid().ToString())
+            .SetAsync(new Dictionary<string, object>
+            {
+                { "Token", resetToken },
+                { "Email", email },
+                { "UserId", userId },
+                { "Used", false },
+                { "ExpiresAt", DateTime.UtcNow.AddHours(1) },
+                { "CreatedAt", DateTime.UtcNow }
+            });
+
+        try
         {
-            { "Token", resetToken },
-            { "Email", email },
-            { "UserId", userId },
-            { "Used", false },
-            { "ExpiresAt", DateTime.UtcNow.AddHours(1) },
-            { "CreatedAt", DateTime.UtcNow }
-        });
-
-    // Enviar email real
-    await SendResetEmailAsync(email, fullName, resetToken);
-}
-
-private async Task SendResetEmailAsync(string email, string fullName, string resetToken)
-{
-    var apiKey = _configuration["SendGrid:ApiKey"];
-    var client = new SendGridClient(apiKey);
-
-    // URL que abrirá Angular — cuando tengas el frontend listo
-    // Por ahora apunta a Scalar para que puedas probarlo
-    var encodedToken = Uri.EscapeDataString(resetToken);
-    var encodedEmail = Uri.EscapeDataString(email);
-    var resetUrl = $"http://localhost:4200/reset-password?token={encodedToken}&email={encodedEmail}";
-
-    var msg = new SendGridMessage
-    {
-        From = new EmailAddress(
-            _configuration["SendGrid:FromEmail"],
-            _configuration["SendGrid:FromName"]
-        ),
-        Subject = "Restablecer tu contraseña - DonaCerca"
-    };
-
-    msg.AddTo(new EmailAddress(email, fullName));
-    
-
-    var response = await client.SendEmailAsync(msg);
-
-    if ((int)response.StatusCode >= 400)
-    {
-        var body = await response.Body.ReadAsStringAsync();
-        throw new Exception($"Error enviando email: {body}");
+            await SendResetEmailAsync(email, fullName, resetToken);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error enviando email: {ex.Message}");
+        }
     }
-}
+
+    private async Task SendResetEmailAsync(string email, string fullName, string resetToken)
+    {
+        var apiKey = _configuration["SendGrid:ApiKey"];
+        var client = new SendGridClient(apiKey);
+
+        var encodedToken = Uri.EscapeDataString(resetToken);
+        var encodedEmail = Uri.EscapeDataString(email);
+        var resetUrl = $"http://localhost:4200/reset-password?token={encodedToken}&email={encodedEmail}";
+
+        var msg = new SendGridMessage
+        {
+            From = new EmailAddress(
+                _configuration["SendGrid:FromEmail"],
+                _configuration["SendGrid:FromName"]
+            ),
+            Subject = "Restablecer tu contraseña - DonaCerca",
+            HtmlContent = $@"
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <h2 style='color: #c2185b;'>🤝 DonaCerca</h2>
+                    <p>Hola <strong>{fullName}</strong>,</p>
+                    <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+                    <p>Haz clic en el siguiente botón para continuar:</p>
+                    <a href='{resetUrl}'
+                       style='background-color: #c2185b; color: white; padding: 12px 24px;
+                              text-decoration: none; border-radius: 6px; display: inline-block;'>
+                        Restablecer contraseña
+                    </a>
+                    <p style='margin-top: 20px; color: #666;'>
+                        Este enlace expira en <strong>1 hora</strong>.
+                    </p>
+                    <p style='color: #666;'>
+                        Si no solicitaste esto, ignora este correo.
+                    </p>
+                </div>"
+        };
+
+        msg.AddTo(new EmailAddress(email, fullName));
+
+        var response = await client.SendEmailAsync(msg);
+
+        if ((int)response.StatusCode >= 400)
+        {
+            var body = await response.Body.ReadAsStringAsync();
+            throw new Exception($"Error enviando email: {body}");
+        }
+    }
 
     public async Task ResetPasswordAsync(ResetPasswordDto dto)
     {
@@ -443,6 +479,7 @@ private async Task SendResetEmailAsync(string email, string fullName, string res
         {
             Token = jwt,
             RefreshToken = refreshToken,
+            IsNewUser = existing.Count == 0,
             User = new { user.Id, user.FullName, user.Email, user.Zone, user.Roles }
         };
     }

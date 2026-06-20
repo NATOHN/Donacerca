@@ -127,4 +127,6 @@ app.UseAuthorization();
 // conecta las rutas HTTP con los metodos de nuestros controllers
 app.MapControllers();
 
+app.UseCors(policy => policy.AllowAnyHeader().AllowAnyMethod().WithOrigins("http://localhost:4200"));
+
 app.Run();

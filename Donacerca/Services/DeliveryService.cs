@@ -7,10 +7,12 @@ namespace Donacerca.Services;
 public class DeliveryService
 {
     private readonly FirebaseService _firebase;
+    private readonly NotificationService _notificationService;
 
-    public DeliveryService(FirebaseService firebase)
+    public DeliveryService(FirebaseService firebase, NotificationService notificationService)
     {
         _firebase = firebase;
+        _notificationService = notificationService;
     }
 
     public async Task<DeliveryRecord> CreateDeliveryAsync(CreateDeliveryDto dto, string donorId)
@@ -80,6 +82,14 @@ public class DeliveryService
                 { "IsActive", false },
                 { "ClosedAt", DateTime.UtcNow }
             });
+
+        // Notificar al donante que la donación se completó exitosamente
+        await _notificationService.CreateAsync(
+            record.DonorId,
+            "completed",
+            $"🎉 ¡Donación completada! El receptor confirmó que recibió '{record.ItemName}' exitosamente.",
+            postId
+        );
     }
 
     public async Task<DeliveryRecord?> GetByPostIdAsync(string postId)
@@ -95,14 +105,27 @@ public class DeliveryService
         var snap = await _firebase.GetCollection("deliveryRecords")
             .WhereEqualTo("ConfirmedByReceiver", true)
             .GetSnapshotAsync();
-        return snap.Documents.Select(MapRecord).ToList();
+
+        var records = snap.Documents.Select(MapRecord).ToList();
+
+        foreach (var record in records)
+        {
+            var donorDoc = await _firebase.GetCollection("users").Document(record.DonorId).GetSnapshotAsync();
+            if (donorDoc.Exists)
+                record.DonorName = donorDoc.ToDictionary()["FullName"].ToString()!;
+
+            var receiverDoc = await _firebase.GetCollection("users").Document(record.ReceiverId).GetSnapshotAsync();
+            if (receiverDoc.Exists)
+                record.ReceiverName = receiverDoc.ToDictionary()["FullName"].ToString()!;
+        }
+
+        return records;
     }
 
     private static DeliveryRecord MapRecord(DocumentSnapshot doc)
     {
         var d = doc.ToDictionary();
 
-        // CompletedAt es null hasta que el receptor confirma
         DateTime? completedAt = null;
         if (d.ContainsKey("CompletedAt") && d["CompletedAt"] is Timestamp ts)
             completedAt = ts.ToDateTime();
@@ -135,6 +158,5 @@ public class DeliveryService
         { "DeliveryLocation", r.DeliveryLocation },
         { "ConfirmedByDonor", r.ConfirmedByDonor },
         { "ConfirmedByReceiver", r.ConfirmedByReceiver }
-        // CompletedAt NO se guarda al crear — se agrega solo cuando el receptor confirma
     };
 }

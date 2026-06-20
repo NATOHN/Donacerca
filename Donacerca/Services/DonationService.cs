@@ -65,12 +65,10 @@ public class DonationService
 
         var post = MapPost(snap);
 
-        // Solo el dueño puede editar
         if (post.DonorId != requestingUserId)
             throw new UnauthorizedAccessException("No tienes permiso para editar esta publicación");
 
-        // No editar si ya tiene receptor seleccionado
-        if (post.SelectedReceiverId != null)
+        if (!string.IsNullOrEmpty(post.SelectedReceiverId))
             throw new InvalidOperationException("No se puede editar una publicación con receptor ya seleccionado");
 
         var updates = new Dictionary<string, object>();
@@ -96,7 +94,33 @@ public class DonationService
         if (!isAdmin && post.DonorId != requestingUserId)
             throw new UnauthorizedAccessException("No tienes permiso");
 
-        await docRef.UpdateAsync(new Dictionary<string, object> { { "IsActive", false } });
+        var updates = new Dictionary<string, object>
+        {
+            { "IsActive", false },
+            { "DeactivatedByAdmin", isAdmin }
+        };
+        await docRef.UpdateAsync(updates);
+    }
+
+    public async Task ReactivateAsync(string id, string requestingUserId)
+    {
+        var docRef = _firebase.GetCollection("donationPosts").Document(id);
+        var snap = await docRef.GetSnapshotAsync();
+        if (!snap.Exists) throw new KeyNotFoundException("Publicación no encontrada");
+
+        var post = MapPost(snap);
+        if (post.DonorId != requestingUserId)
+            throw new UnauthorizedAccessException("No tienes permiso");
+
+        if (post.DeactivatedByAdmin)
+            throw new InvalidOperationException("Esta publicación fue desactivada por un administrador y no puede ser reactivada");
+
+        await docRef.UpdateAsync(new Dictionary<string, object>
+        {
+            { "IsActive", true },
+            { "Status", "disponible" },
+            { "CreatedAt", DateTime.UtcNow }
+        });
     }
 
     public async Task<List<DonationPost>> GetAllActiveAsync()
@@ -107,45 +131,93 @@ public class DonationService
         return snap.Documents.Select(MapPost).ToList();
     }
 
-    private static DonationPost MapPost(DocumentSnapshot doc)
+    public async Task<List<DonationPost>> GetAllForModerationAsync()
     {
-        var d = doc.ToDictionary();
-        return new DonationPost
+        var snap = await _firebase.GetCollection("donationPosts")
+            .GetSnapshotAsync();
+        return snap.Documents
+            .Select(MapPost)
+            .Where(p => p.Status != "entregado")
+            .ToList();
+    }
+
+    public async Task<object> GetReceiverStatsAsync(string receiverId)
+    {
+        var snap = await _firebase.GetCollection("donationPosts")
+            .WhereEqualTo("SelectedReceiverId", receiverId)
+            .GetSnapshotAsync();
+
+        var posts = snap.Documents.Select(MapPost).ToList();
+
+        return new
         {
-            Id = d["Id"].ToString()!,
-            DonorId = d["DonorId"].ToString()!,
-            DonorName = d["DonorName"].ToString()!,
-            CategoryId = d["CategoryId"].ToString()!,
-            ItemName = d["ItemName"].ToString()!,
-            Description = d["Description"].ToString()!,
-            ItemCondition = d["ItemCondition"].ToString()!,
-            Zone = d["Zone"].ToString()!,
-            PhotoUrls = d.ContainsKey("PhotoUrls") ? ((List<object>)d["PhotoUrls"]).Select(x => x.ToString()!).ToList() : new(),
-            Status = d["Status"].ToString()!,
-            SelectedReceiverId = d.ContainsKey("SelectedReceiverId") ? d["SelectedReceiverId"]?.ToString() : null,
-            IsActive = (bool)d["IsActive"],
-            CreatedAt = ((Google.Cloud.Firestore.Timestamp)d["CreatedAt"]).ToDateTime(),
-            ReservedAt = d.ContainsKey("ReservedAt") && d["ReservedAt"] != null ? ((Google.Cloud.Firestore.Timestamp)d["ReservedAt"]).ToDateTime() : null,
-            ClosedAt = d.ContainsKey("ClosedAt") && d["ClosedAt"] != null ? ((Google.Cloud.Firestore.Timestamp)d["ClosedAt"]).ToDateTime() : null,
+            Available = posts.Count(p => p.Status == "disponible"),
+            Reserved  = posts.Count(p => p.Status == "reservado"),
+            Delivered = posts.Count(p => p.Status == "entregado"),
+            Total     = posts.Count
         };
     }
 
-    private static Dictionary<string, object> ToDict(DonationPost p) => new()
+    private static DonationPost MapPost(DocumentSnapshot doc)
     {
-        { "Id", p.Id },
-        { "DonorId", p.DonorId },
-        { "DonorName", p.DonorName },
-        { "CategoryId", p.CategoryId },
-        { "ItemName", p.ItemName },
-        { "Description", p.Description },
-        { "ItemCondition", p.ItemCondition },
-        { "Zone", p.Zone },
-        { "PhotoUrls", p.PhotoUrls },
-        { "Status", p.Status },
-        { "SelectedReceiverId", p.SelectedReceiverId ?? (object)string.Empty },
-        { "IsActive", p.IsActive },
-        { "CreatedAt", p.CreatedAt },
-        { "ReservedAt", p.ReservedAt ?? (object)string.Empty },
-        { "ClosedAt", p.ClosedAt ?? (object)string.Empty }
-    };
+        var d = doc.ToDictionary();
+
+        DateTime? reservedAt = null;
+        if (d.ContainsKey("ReservedAt") && d["ReservedAt"] is Timestamp rts)
+            reservedAt = rts.ToDateTime();
+
+        DateTime? closedAt = null;
+        if (d.ContainsKey("ClosedAt") && d["ClosedAt"] is Timestamp cts)
+            closedAt = cts.ToDateTime();
+
+        return new DonationPost
+        {
+            Id               = d["Id"].ToString()!,
+            DonorId          = d["DonorId"].ToString()!,
+            DonorName        = d["DonorName"].ToString()!,
+            CategoryId       = d["CategoryId"].ToString()!,
+            ItemName         = d["ItemName"].ToString()!,
+            Description      = d["Description"].ToString()!,
+            ItemCondition    = d["ItemCondition"].ToString()!,
+            Zone             = d["Zone"].ToString()!,
+            PhotoUrls        = d.ContainsKey("PhotoUrls")
+                ? ((List<object>)d["PhotoUrls"]).Select(x => x.ToString()!).ToList()
+                : new(),
+            Status           = d["Status"].ToString()!,
+            SelectedReceiverId = d.ContainsKey("SelectedReceiverId")
+                ? d["SelectedReceiverId"]?.ToString()
+                : null,
+            IsActive         = (bool)d["IsActive"],
+            DeactivatedByAdmin = d.ContainsKey("DeactivatedByAdmin") && (bool)d["DeactivatedByAdmin"],
+            CreatedAt        = ((Timestamp)d["CreatedAt"]).ToDateTime(),
+            ReservedAt       = reservedAt,
+            ClosedAt         = closedAt
+        };
+    }
+
+    private static Dictionary<string, object> ToDict(DonationPost p)
+    {
+        var dict = new Dictionary<string, object>
+        {
+            { "Id",                 p.Id },
+            { "DonorId",            p.DonorId },
+            { "DonorName",          p.DonorName },
+            { "CategoryId",         p.CategoryId },
+            { "ItemName",           p.ItemName },
+            { "Description",        p.Description },
+            { "ItemCondition",      p.ItemCondition },
+            { "Zone",               p.Zone },
+            { "PhotoUrls",          p.PhotoUrls },
+            { "Status",             p.Status },
+            { "SelectedReceiverId", p.SelectedReceiverId ?? (object)string.Empty },
+            { "IsActive",           p.IsActive },
+            { "DeactivatedByAdmin", p.DeactivatedByAdmin },
+            { "CreatedAt",          p.CreatedAt }
+        };
+
+        if (p.ReservedAt.HasValue) dict["ReservedAt"] = p.ReservedAt.Value;
+        if (p.ClosedAt.HasValue)   dict["ClosedAt"]   = p.ClosedAt.Value;
+
+        return dict;
+    }
 }

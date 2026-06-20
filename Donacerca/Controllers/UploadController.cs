@@ -20,7 +20,6 @@ public class UploadController : ControllerBase
     [HttpPost("photo")]
     public async Task<IActionResult> UploadPhoto(IFormFile file)
     {
-        // Validaciones básicas
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "No se recibió ningún archivo" });
 
@@ -31,7 +30,6 @@ public class UploadController : ControllerBase
         if (file.Length > 5 * 1024 * 1024)
             return BadRequest(new { message = "El archivo no puede superar 5MB" });
 
-        // Leer bytes una sola vez para reusar en Vision y Storage
         byte[] imageBytes;
         using (var ms = new MemoryStream())
         {
@@ -39,12 +37,10 @@ public class UploadController : ControllerBase
             imageBytes = ms.ToArray();
         }
 
-        // Analizar con Google Vision antes de subir
         var analysis = await AnalyzeImageAsync(imageBytes);
         if (!analysis.IsAppropriate)
             return BadRequest(new { message = analysis.Reason });
 
-        // Subir a Firebase Storage
         var fileName = $"donations/photos/{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
         var bucketName = _config["Firebase:StorageBucket"];
 
@@ -58,7 +54,7 @@ public class UploadController : ControllerBase
             source: stream
         );
 
-        var publicUrl = $"https://storage.googleapis.com/{bucketName}/{fileName}";
+        var publicUrl = $"https://firebasestorage.googleapis.com/v0/b/{bucketName}/o/{Uri.EscapeDataString(fileName)}?alt=media";
 
         return Ok(new
         {
@@ -76,7 +72,6 @@ public class UploadController : ControllerBase
         var client = await ImageAnnotatorClient.CreateAsync();
         var image = Image.FromBytes(imageBytes);
 
-        // Ejecutar SafeSearch y Labels en paralelo
         var safeSearchTask = client.DetectSafeSearchAsync(image);
         var labelsTask = client.DetectLabelsAsync(image);
 
@@ -85,7 +80,7 @@ public class UploadController : ControllerBase
         var safeSearch = await safeSearchTask;
         var labels = await labelsTask;
 
-        // Rechazar si contiene contenido inapropiado
+        // Rechazar contenido inapropiado por SafeSearch
         if (safeSearch.Adult >= Likelihood.Possible ||
             safeSearch.Violence >= Likelihood.Possible ||
             safeSearch.Racy >= Likelihood.Possible)
@@ -103,6 +98,28 @@ public class UploadController : ControllerBase
             .Select(l => l.Description)
             .Take(5)
             .ToList();
+
+        // Etiquetas prohibidas
+        var forbiddenLabels = new[]
+        {
+            "Gun", "Firearm", "Weapon", "Pistol", "Rifle", "Shotgun",
+            "Trigger", "Ammunition", "Knife", "Blade", "Explosive",
+            "Bomb", "Grenade", "Drug", "Narcotics", "Cannabis",
+            "Syringe", "Nudity", "Tobacco", "Cigarette"
+        };
+
+        var foundForbidden = labelDescriptions
+            .FirstOrDefault(l => forbiddenLabels.Any(f =>
+                l.Contains(f, StringComparison.OrdinalIgnoreCase)));
+
+        if (foundForbidden != null)
+        {
+            return new ImageAnalysisResult
+            {
+                IsAppropriate = false,
+                Reason = $"La imagen contiene contenido no permitido: {foundForbidden}"
+            };
+        }
 
         return new ImageAnalysisResult
         {
