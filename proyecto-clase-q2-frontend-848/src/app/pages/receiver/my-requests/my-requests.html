@@ -1,0 +1,239 @@
+﻿<div class="receiver-layout">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <span class="panel-badge">Panel Receptor</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/receiver/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/receiver/browse" routerLinkActive="active">
+        <mat-icon>store</mat-icon>
+        <span>Ver catálogo</span>
+      </a>
+
+      <a routerLink="/receiver/my-requests" routerLinkActive="active">
+        <mat-icon>list_alt</mat-icon>
+        <span>Mis solicitudes</span>
+      </a>
+    </nav>
+
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-hero">
+      <div>
+        <span class="eyebrow">Seguimiento de solicitudes</span>
+        <h1>Mis solicitudes</h1>
+        <p>Consulta el estado de todos los artículos que has solicitado.</p>
+      </div>
+
+      <div class="hero-badge">
+        <mat-icon>list_alt</mat-icon>
+        <span>Historial personal</span>
+      </div>
+    </section>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Cargando tus solicitudes...</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && requests.length === 0">
+      <div class="empty-icon">
+        <mat-icon>assignment</mat-icon>
+      </div>
+
+      <h3>Aún no has enviado solicitudes</h3>
+      <p>Explora el catálogo y solicita artículos disponibles en tu comunidad.</p>
+
+      <a mat-raised-button class="primary-action" routerLink="/receiver/browse">
+        <mat-icon>store</mat-icon>
+        Explorar catálogo
+      </a>
+    </div>
+
+    <section class="requests-section" *ngIf="!loading && requests.length > 0">
+
+      <div class="section-heading">
+        <div>
+          <span>Solicitudes enviadas</span>
+          <h2>Estado de tus solicitudes</h2>
+        </div>
+
+        <p>{{ requests.length }} solicitud(es)</p>
+      </div>
+
+      <div class="requests-list">
+
+        <mat-card
+          class="request-card"
+          *ngFor="let req of requests"
+          [id]="'req-' + req.id"
+          [class.highlighted]="highlightId === req.id">
+
+          <mat-card-content>
+
+            <div class="request-header">
+
+              <div class="request-id">
+                <img
+                  *ngIf="postPhotos[req.postId]"
+                  [src]="postPhotos[req.postId]"
+                  class="request-thumb"
+                  [alt]="postNames[req.postId]">
+
+                <div class="request-thumb no-photo" *ngIf="!postPhotos[req.postId]">
+                  <mat-icon>image_not_supported</mat-icon>
+                </div>
+
+                <div class="request-info">
+                  <small>Artículo solicitado</small>
+
+                  <strong>
+                    {{ postNames[req.postId] || '#' + req.id.substring(0, 8) }}
+                  </strong>
+                </div>
+              </div>
+
+              <span class="status-chip" [class]="req.status">
+                <mat-icon>{{ getStatusIcon(req.status) }}</mat-icon>
+                {{ req.status | titlecase }}
+              </span>
+
+            </div>
+
+            <div class="request-date">
+              <mat-icon>calendar_today</mat-icon>
+              <span>
+                Enviada el
+                {{ req.requestTimestamp | date:'dd/MM/yyyy HH:mm' }}
+              </span>
+            </div>
+
+            <div class="status-message" [class]="req.status">
+
+              <span *ngIf="req.status === 'pendiente'">
+                ⏳ Tu solicitud está pendiente. El donante la revisará pronto.
+              </span>
+
+              <span *ngIf="req.status === 'aceptada' && !confirmed[req.postId]">
+                ✅ ¡Fuiste seleccionado! Revisa los datos de entrega y confirma cuando recibas el artículo.
+              </span>
+
+              <span *ngIf="req.status === 'aceptada' && confirmed[req.postId]">
+                🎉 ¡Donación completada! Ya confirmaste la recepción del artículo.
+              </span>
+
+              <span *ngIf="req.status === 'rechazada'">
+                ❌ Esta solicitud no fue aceptada. El donante eligió otro receptor.
+              </span>
+
+              <span *ngIf="req.status === 'cancelada'">
+                🚫 Esta solicitud fue cancelada.
+              </span>
+
+            </div>
+
+            <div
+              class="delivery-info"
+              *ngIf="req.status === 'aceptada' && deliveryData[req.postId]">
+
+              <div class="delivery-row">
+                <mat-icon>location_on</mat-icon>
+                <span>
+                  <strong>Punto de entrega:</strong>
+                  {{
+                    deliveryData[req.postId].deliveryLocation ??
+                    deliveryData[req.postId].DeliveryLocation
+                  }}
+                </span>
+              </div>
+
+              <div class="delivery-row">
+                <mat-icon>event</mat-icon>
+                <span>
+                  <strong>Fecha:</strong>
+                  {{
+                    (
+                      deliveryData[req.postId].deliveryDate ??
+                      deliveryData[req.postId].DeliveryDate
+                    ) | date:'dd/MM/yyyy HH:mm'
+                  }}
+                </span>
+              </div>
+
+              <div class="delivery-row">
+                <mat-icon>
+                  {{
+                    deliveryData[req.postId].confirmedByDonor ||
+                    deliveryData[req.postId].ConfirmedByDonor
+                      ? 'check_circle'
+                      : 'hourglass_empty'
+                  }}
+                </mat-icon>
+
+                <span>
+                  {{
+                    deliveryData[req.postId].confirmedByDonor ||
+                    deliveryData[req.postId].ConfirmedByDonor
+                      ? 'El donante ya confirmó la entrega'
+                      : 'Esperando confirmación del donante'
+                  }}
+                </span>
+              </div>
+
+            </div>
+
+          </mat-card-content>
+
+          <mat-card-actions
+            *ngIf="req.status === 'aceptada' && !confirmed[req.postId]">
+
+            <button
+              mat-raised-button
+              class="confirm-btn"
+              (click)="confirmReception(req.postId)"
+              [disabled]="confirming[req.postId]">
+
+              <mat-spinner
+                *ngIf="confirming[req.postId]"
+                diameter="18">
+              </mat-spinner>
+
+              <mat-icon *ngIf="!confirming[req.postId]">
+                verified
+              </mat-icon>
+
+              <span *ngIf="!confirming[req.postId]">
+                Confirmar que recibí el artículo
+              </span>
+
+            </button>
+
+          </mat-card-actions>
+
+        </mat-card>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>

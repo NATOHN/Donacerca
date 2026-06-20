@@ -1,0 +1,144 @@
+﻿<div class="admin-layout">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <span class="admin-badge">Panel Administrador</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/admin/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/admin/categories" routerLinkActive="active">
+        <mat-icon>category</mat-icon>
+        <span>Categorías</span>
+      </a>
+
+      <a routerLink="/admin/moderation" routerLinkActive="active">
+        <mat-icon>manage_search</mat-icon>
+        <span>Moderación</span>
+      </a>
+
+      <a routerLink="/admin/history" routerLinkActive="active">
+        <mat-icon>history</mat-icon>
+        <span>Historial</span>
+      </a>
+    </nav>
+
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-hero">
+      <div>
+        <span class="eyebrow">Control de publicaciones</span>
+        <h1>Moderación</h1>
+        <p>Supervisa, revisa y gestiona las publicaciones activas de la comunidad.</p>
+      </div>
+
+      <div class="hero-badge">
+        <mat-icon>verified_user</mat-icon>
+        <span>Supervisión activa</span>
+      </div>
+    </section>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Cargando publicaciones...</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && posts.length === 0">
+      <div class="empty-icon">
+        <mat-icon>task_alt</mat-icon>
+      </div>
+
+      <h3>No hay publicaciones activas</h3>
+      <p>Todo está bajo control en DonaCerca.</p>
+    </div>
+
+    <section class="content-section" *ngIf="!loading && posts.length > 0">
+
+      <div class="section-heading">
+        <div>
+          <span>Publicaciones activas</span>
+          <h2>Contenido pendiente de supervisión</h2>
+        </div>
+
+        <p>{{ posts.length }} publicación(es)</p>
+      </div>
+
+      <div class="posts-grid">
+        <mat-card class="post-card" *ngFor="let post of posts">
+
+          <div class="post-image">
+            <img
+              *ngIf="post.photoUrls && post.photoUrls.length > 0"
+              [src]="post.photoUrls[0]"
+              [alt]="post.itemName">
+
+            <div *ngIf="!post.photoUrls || post.photoUrls.length === 0" class="no-image">
+              <mat-icon>image_not_supported</mat-icon>
+            </div>
+
+            <span class="status-badge" [class]="post.status">
+              {{ post.status | titlecase }}
+            </span>
+          </div>
+
+          <mat-card-content>
+            <h3>{{ post.itemName }}</h3>
+
+            <p class="description">
+              {{ post.description }}
+            </p>
+
+            <div class="post-meta">
+              <span>
+                <mat-icon>person</mat-icon>
+                {{ post.donorName }}
+              </span>
+
+              <span>
+                <mat-icon>location_on</mat-icon>
+                {{ post.zone }}
+              </span>
+
+              <span>
+                <mat-icon>star</mat-icon>
+                {{ post.itemCondition }}
+              </span>
+            </div>
+          </mat-card-content>
+
+          <mat-card-actions>
+            <button
+              mat-stroked-button
+              class="deactivate-btn"
+              (click)="deactivate(post)"
+              *ngIf="post.isActive">
+
+              <mat-icon>block</mat-icon>
+              Desactivar
+            </button>
+
+            <div class="inactive-badge" *ngIf="!post.isActive">
+              <mat-icon>check_circle</mat-icon>
+              <span>Desactivada por admin</span>
+            </div>
+          </mat-card-actions>
+
+        </mat-card>
+      </div>
+
+    </section>
+
+  </main>
+
+</div>

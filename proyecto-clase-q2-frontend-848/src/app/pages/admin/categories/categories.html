@@ -1,0 +1,250 @@
+﻿<div class="admin-layout">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca"> class="sidebar">
+        <span>DonaCerca</span>
+         </div>
+
+      <span class="admin-badge">Panel Administrador</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/admin/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/admin/categories" routerLinkActive="active">
+        <mat-icon>category</mat-icon>
+        <span>Categorías</span>
+      </a>
+
+      <a routerLink="/admin/moderation" routerLinkActive="active">
+        <mat-icon>manage_search</mat-icon>
+        <span>Moderación</span>
+      </a>
+
+      <a routerLink="/admin/history" routerLinkActive="active">
+        <mat-icon>history</mat-icon>
+        <span>Historial</span>
+      </a>
+    </nav>
+
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-hero">
+      <div>
+        <span class="eyebrow">Gestión administrativa</span>
+        <h1>Categorías de donación</h1>
+        <p>Organiza, activa y administra las categorías disponibles en DonaCerca.</p>
+      </div>
+
+      <button mat-raised-button class="primary-action" (click)="openForm()">
+        <mat-icon>add</mat-icon>
+        Nueva categoría
+      </button>
+    </section>
+
+    <section class="summary-grid">
+
+      <mat-card class="summary-card">
+        <div class="summary-icon blue">
+          <mat-icon>category</mat-icon>
+        </div>
+
+        <div>
+          <span>Total categorías</span>
+          <strong>{{ categories.length }}</strong>
+        </div>
+      </mat-card>
+
+      <mat-card class="summary-card">
+        <div class="summary-icon orange">
+          <mat-icon>inventory_2</mat-icon>
+        </div>
+
+        <div>
+          <span>Artículos activos</span>
+          <strong>Gestionados</strong>
+        </div>
+      </mat-card>
+
+      <mat-card class="summary-card">
+        <div class="summary-icon soft">
+          <mat-icon>toggle_on</mat-icon>
+        </div>
+
+        <div>
+          <span>Estado</span>
+          <strong>Editable</strong>
+        </div>
+      </mat-card>
+
+    </section>
+
+    <mat-card class="form-card" *ngIf="showForm">
+
+      <div class="form-card-header">
+        <div>
+          <span>{{ editingId ? 'Actualización' : 'Nuevo registro' }}</span>
+          <h2>{{ editingId ? 'Editar categoría' : 'Crear categoría' }}</h2>
+        </div>
+
+        <button mat-icon-button type="button" (click)="closeForm()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Nombre</mat-label>
+
+            <input
+              matInput
+              formControlName="name"
+              placeholder="Ej. Ropa, muebles, electrónicos">
+
+            <mat-icon matSuffix>label</mat-icon>
+            <mat-error>Mínimo 2 caracteres</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Descripción</mat-label>
+
+            <textarea
+              matInput
+              formControlName="description"
+              rows="3"
+              placeholder="Describe qué tipo de artículos pertenecen a esta categoría">
+            </textarea>
+
+            <mat-icon matSuffix>notes</mat-icon>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button
+              mat-stroked-button
+              type="button"
+              class="cancel-btn"
+              (click)="closeForm()">
+              Cancelar
+            </button>
+
+            <button
+              mat-raised-button
+              type="submit"
+              class="save-btn"
+              [disabled]="form.invalid">
+
+              <mat-icon>{{ editingId ? 'save' : 'add_circle' }}</mat-icon>
+              {{ editingId ? 'Actualizar' : 'Crear' }}
+            </button>
+          </div>
+
+        </form>
+      </mat-card-content>
+
+    </mat-card>
+
+    <mat-card class="table-card">
+
+      <div class="table-header">
+        <div>
+          <span>Listado general</span>
+          <h2>Categorías registradas</h2>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+
+        <table mat-table [dataSource]="categories" class="full-width">
+
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Nombre</th>
+
+            <td mat-cell *matCellDef="let cat">
+              <div class="category-name">
+                <div class="category-avatar">
+                  <mat-icon>category</mat-icon>
+                </div>
+
+                <strong>{{ cat.name ?? cat.Name }}</strong>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef>Descripción</th>
+
+            <td mat-cell *matCellDef="let cat">
+              <span class="description-text">
+                {{ cat.description ?? cat.Description }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="count">
+            <th mat-header-cell *matHeaderCellDef>Artículos activos</th>
+
+            <td mat-cell *matCellDef="let cat">
+              <span class="count-badge">
+                {{ cat.activeItemsCount ?? cat.ActiveItemsCount ?? 0 }}
+              </span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+
+            <td mat-cell *matCellDef="let cat">
+              <div class="status-cell">
+
+                <mat-slide-toggle
+                  [checked]="cat.isActive ?? cat.IsActive"
+                  (change)="toggleStatus(cat)"
+                  [color]="'primary'">
+
+                  {{ (cat.isActive ?? cat.IsActive) ? 'Activa' : 'Inactiva' }}
+                </mat-slide-toggle>
+
+                <small *ngIf="!(cat.isActive ?? cat.IsActive)">
+                  Publicaciones existentes conservadas
+                </small>
+
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Acciones</th>
+
+            <td mat-cell *matCellDef="let cat">
+              <button
+                mat-icon-button
+                class="edit-btn"
+                (click)="openForm(cat)">
+
+                <mat-icon>edit</mat-icon>
+              </button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+        </table>
+
+      </div>
+
+    </mat-card>
+
+  </main>
+
+</div>

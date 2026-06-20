@@ -1,0 +1,194 @@
+﻿<div class="donor-layout">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <span class="admin-badge">Panel Donante</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/donor/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/donor/posts" routerLinkActive="active">
+        <mat-icon>inventory_2</mat-icon>
+        <span>Mis publicaciones</span>
+      </a>
+
+      <a routerLink="/donor/posts/new" routerLinkActive="active">
+        <mat-icon>add_circle</mat-icon>
+        <span>Nueva publicación</span>
+      </a>
+
+      <a routerLink="/catalog" routerLinkActive="active">
+        <mat-icon>store</mat-icon>
+        <span>Ver catálogo</span>
+      </a>
+    </nav>
+
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-hero">
+      <div>
+        <span class="eyebrow">Gestión de donaciones</span>
+        <h1>Mis publicaciones</h1>
+        <p>Administra todos los artículos que has publicado para ayudar a tu comunidad.</p>
+      </div>
+
+      <a mat-raised-button class="primary-action" routerLink="/donor/posts/new">
+        <mat-icon>add</mat-icon>
+        Nueva publicación
+      </a>
+    </section>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Cargando publicaciones...</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && posts.length === 0">
+      <div class="empty-icon">
+        <mat-icon>inventory_2</mat-icon>
+      </div>
+
+      <h3>Aún no tienes publicaciones</h3>
+      <p>Publica tu primer artículo y comienza a ayudar.</p>
+
+      <a mat-raised-button class="primary-action" routerLink="/donor/posts/new">
+        Crear primera publicación
+      </a>
+    </div>
+
+    <section class="posts-section" *ngIf="!loading && posts.length > 0">
+
+      <div class="section-heading">
+        <div>
+          <span>Listado general</span>
+          <h2>Publicaciones registradas</h2>
+        </div>
+
+        <p>{{ posts.length }} publicación(es)</p>
+      </div>
+
+      <div class="posts-grid">
+
+        <mat-card class="post-card"
+                  *ngFor="let post of posts"
+                  [id]="'post-' + post.id"
+                  [class.highlighted]="highlightId === post.id">
+
+          <div class="post-image">
+            <img *ngIf="post.photoUrls && post.photoUrls.length > 0"
+                 [src]="post.photoUrls[0]"
+                 [alt]="post.itemName">
+
+            <div *ngIf="!post.photoUrls || post.photoUrls.length === 0"
+                 class="no-image">
+              <mat-icon>image_not_supported</mat-icon>
+            </div>
+
+            <span class="status-badge" [class]="post.status">
+              {{ post.status | titlecase }}
+            </span>
+          </div>
+
+          <mat-card-content>
+            <h3>{{ post.itemName }}</h3>
+
+            <p class="description">
+              {{ post.description }}
+            </p>
+
+            <div class="post-meta">
+              <span>
+                <mat-icon>location_on</mat-icon>
+                {{ post.zone }}
+              </span>
+
+              <span>
+                <mat-icon>star</mat-icon>
+                {{ post.itemCondition }}
+              </span>
+            </div>
+          </mat-card-content>
+
+          <mat-card-actions>
+
+            <a mat-stroked-button
+               class="action-btn edit"
+               [routerLink]="['/donor/posts/edit', post.id]"
+               *ngIf="post.status === 'disponible' && !post.selectedReceiverId">
+              <mat-icon>edit</mat-icon>
+              Editar
+            </a>
+
+            <button mat-stroked-button
+                    class="action-btn requests"
+                    (click)="viewRequests(post.id)"
+                    *ngIf="post.status === 'disponible' || post.status === 'reservado'">
+              <mat-icon>people</mat-icon>
+              Solicitudes
+            </button>
+
+            <a mat-stroked-button
+               class="action-btn delivery"
+               [routerLink]="['/donor/delivery', post.id]"
+               *ngIf="post.status === 'reservado' || post.status === 'entregado'">
+              <mat-icon>local_shipping</mat-icon>
+              Entrega
+            </a>
+
+            <button mat-stroked-button
+                    class="action-btn danger"
+                    (click)="deactivate(post)"
+                    *ngIf="post.isActive && post.status !== 'vencido'">
+              <mat-icon>block</mat-icon>
+              Desactivar
+            </button>
+
+            <button mat-stroked-button
+                    class="action-btn activate"
+                    (click)="reactivate(post)"
+                    *ngIf="!post.isActive && post.status !== 'entregado' && post.status !== 'vencido' && !isBlockedByAdmin(post)">
+              <mat-icon>check_circle</mat-icon>
+              Activar
+            </button>
+
+            <button mat-stroked-button
+                    class="action-btn renovate"
+                    (click)="renovate(post)"
+                    *ngIf="post.status === 'vencido' && !isBlockedByAdmin(post)">
+              <mat-icon>refresh</mat-icon>
+              Renovar
+            </button>
+
+            <div class="admin-blocked"
+                 *ngIf="!post.isActive && isBlockedByAdmin(post)">
+              <mat-icon>admin_panel_settings</mat-icon>
+              <span>Desactivada por admin</span>
+            </div>
+
+          </mat-card-actions>
+
+        </mat-card>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>

@@ -1,0 +1,123 @@
+<div class="login-page">
+
+  <section class="brand-panel">
+    <div class="glass-card">
+
+      <div class="brand-logo">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <h1>Conecta ayuda real con personas cercanas</h1>
+
+      <p>
+        Una plataforma comunitaria para donar artículos, coordinar entregas
+        y medir el impacto solidario en San Pedro Sula.
+      </p>
+
+      <div class="impact-grid">
+        <div>
+          <strong>1,250+</strong>
+          <span>Artículos donados</span>
+        </div>
+
+        <div>
+          <strong>850+</strong>
+          <span>Familias apoyadas</span>
+        </div>
+
+        <div>
+          <strong>32</strong>
+          <span>Comunidades activas</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <mat-card class="login-card">
+
+      <div class="login-header">
+        <div class="logo-mark">
+          <img src="/logo-donacerca.png" alt="DonaCerca">
+        </div>
+
+        <h2>Bienvenido</h2>
+        <p>Ingresa a tu cuenta para continuar ayudando.</p>
+      </div>
+
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Correo electrónico</mat-label>
+            <input matInput type="email" formControlName="email" placeholder="  ejemplo@email.com"/>
+            <mat-icon matSuffix>alternate_email</mat-icon>
+
+            <mat-error *ngIf="form.get('email')?.hasError('required')">
+              El correo es requerido
+            </mat-error>
+
+            <mat-error *ngIf="form.get('email')?.hasError('email')">
+              Ingresa un correo válido
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Contraseña</mat-label>
+
+            <input matInput
+                   [type]="hidePassword ? 'password' : 'text'"
+                   formControlName="password"/>
+
+            <button mat-icon-button matSuffix type="button"
+                    (click)="hidePassword = !hidePassword">
+              <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+
+            <mat-error *ngIf="form.get('password')?.hasError('required')">
+              La contraseña es requerida
+            </mat-error>
+          </mat-form-field>
+
+          <div class="options-row">
+            <span>Acceso seguro</span>
+            <a routerLink="/forgot-password">¿Olvidaste tu contraseña?</a>
+          </div>
+
+          <div class="error-box" *ngIf="errorMessage">
+            <mat-icon>error_outline</mat-icon>
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <button mat-raised-button
+                  type="submit"
+                  class="full-width submit-btn"
+                  [disabled]="loading || form.invalid">
+            <mat-spinner *ngIf="loading" diameter="22"></mat-spinner>
+            <span *ngIf="!loading">Iniciar sesión</span>
+          </button>
+
+        </form>
+      </mat-card-content>
+
+      <div class="divider">
+        <span>o continúa con</span>
+      </div>
+
+      <button mat-stroked-button class="google-btn" type="button"
+              (click)="loginWithGoogle()" [disabled]="loading">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+             width="20" height="20" alt="Google"/>
+        Iniciar sesión con Google
+      </button>
+
+      <div class="login-footer">
+        <p>¿No tienes cuenta? <a routerLink="/register">Crear cuenta</a></p>
+        <p><a routerLink="/catalog">Explorar donaciones disponibles</a></p>
+      </div>
+
+    </mat-card>
+  </section>
+
+</div>
