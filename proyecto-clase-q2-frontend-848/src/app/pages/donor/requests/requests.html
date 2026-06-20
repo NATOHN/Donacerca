@@ -1,0 +1,138 @@
+﻿<div class="donor-layout">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <span class="admin-badge">Panel Donante</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/donor/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/donor/posts" routerLinkActive="active">
+        <mat-icon>inventory_2</mat-icon>
+        <span>Mis publicaciones</span>
+      </a>
+
+      <a routerLink="/donor/posts/new" routerLinkActive="active">
+        <mat-icon>add_circle</mat-icon>
+        <span>Nueva publicación</span>
+      </a>
+
+      <a routerLink="/catalog" routerLinkActive="active">
+        <mat-icon>store</mat-icon>
+        <span>Ver catálogo</span>
+      </a>
+    </nav>
+
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-hero">
+      <div>
+        <span class="eyebrow">Gestión de donaciones</span>
+        <h1>Solicitudes recibidas</h1>
+        <p>Selecciona quién recibirá tu artículo.</p>
+      </div>
+
+      <a mat-raised-button class="hero-back-btn" routerLink="/donor/posts">
+        <mat-icon>arrow_back</mat-icon>
+        Volver
+      </a>
+    </section>
+
+    <section class="content-section">
+
+      <div class="section-heading">
+        <div>
+          <span>Listado general</span>
+          <h2>Solicitudes registradas</h2>
+        </div>
+
+        <p *ngIf="!loading">
+          {{ requests.length }} solicitud(es)
+        </p>
+      </div>
+
+      <div class="loading-center" *ngIf="loading">
+        <mat-spinner diameter="48"></mat-spinner>
+        <p>Cargando solicitudes...</p>
+      </div>
+
+      <div class="empty-state" *ngIf="!loading && requests.length === 0">
+        <div class="empty-icon">
+          <mat-icon>notifications_none</mat-icon>
+        </div>
+
+        <h3>Nadie ha solicitado este artículo aún</h3>
+        <p>Cuando alguien lo solicite aparecerá aquí.</p>
+      </div>
+
+      <div class="requests-list" *ngIf="!loading && requests.length > 0">
+
+        <div class="pending-summary" *ngIf="getPendingRequests().length > 0">
+          <mat-icon>pending</mat-icon>
+          <span>{{ getPendingRequests().length }} solicitudes pendientes</span>
+        </div>
+
+        <mat-card class="request-card" *ngFor="let req of requests">
+
+          <mat-card-content>
+
+            <div class="request-info">
+
+              <div class="avatar">
+                {{ req.receiverName.charAt(0).toUpperCase() }}
+              </div>
+
+              <div class="details">
+                <strong>{{ req.receiverName }}</strong>
+                <span>
+                  Solicitud enviada:
+                  {{ req.requestTimestamp | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+              </div>
+
+              <span class="status-chip" [class]="req.status">
+                {{ req.status | titlecase }}
+              </span>
+
+            </div>
+
+          </mat-card-content>
+
+          <mat-card-actions align="end" *ngIf="req.status === 'pendiente'">
+            <button
+              mat-raised-button
+              class="select-btn"
+              (click)="selectReceiver(req.receiverId)"
+              [disabled]="selecting">
+
+              <mat-spinner *ngIf="selecting" diameter="18"></mat-spinner>
+              <mat-icon *ngIf="!selecting">how_to_reg</mat-icon>
+              <span *ngIf="!selecting">Seleccionar como receptor</span>
+            </button>
+          </mat-card-actions>
+
+        </mat-card>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>

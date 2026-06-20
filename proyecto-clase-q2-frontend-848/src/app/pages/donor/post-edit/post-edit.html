@@ -1,0 +1,164 @@
+﻿<div class="donor-layout">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <span class="admin-badge">Panel Donante</span>
+    </div>
+
+    <nav class="sidebar-nav">
+
+      <a routerLink="/donor/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/donor/posts" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon>inventory_2</mat-icon>
+        <span>Mis publicaciones</span>
+      </a>
+
+      <a routerLink="/donor/posts/new" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon>add_circle</mat-icon>
+        <span>Nueva publicación</span>
+      </a>
+
+      <a routerLink="/catalog" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <mat-icon>store</mat-icon>
+        <span>Ver catálogo</span>
+      </a>
+
+    </nav>
+
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-hero">
+      <div>
+        <span class="eyebrow">Gestión de publicaciones</span>
+        <h1>Editar publicación</h1>
+        <p>Actualiza la información de tu artículo antes de guardar los cambios.</p>
+      </div>
+
+      <a mat-raised-button class="hero-back-btn" routerLink="/donor/posts">
+        <mat-icon>arrow_back</mat-icon>
+        Volver
+      </a>
+    </section>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Cargando publicación...</p>
+    </div>
+
+    <mat-card class="form-card" *ngIf="!loading">
+
+      <div class="form-card-header">
+        <div>
+          <span>Información del artículo</span>
+          <h2>Datos de la publicación</h2>
+        </div>
+      </div>
+
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          <div class="form-row">
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Nombre del artículo</mat-label>
+              <input matInput formControlName="itemName" placeholder="Ej: Camisa azul talla M">
+              <mat-icon matSuffix>inventory_2</mat-icon>
+              <mat-error>Mínimo 3 caracteres</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Categoría</mat-label>
+
+              <mat-select formControlName="categoryId">
+                <mat-option *ngFor="let cat of categories" [value]="cat.id ?? cat.Id">
+                  {{ cat.name ?? cat.Name }}
+                </mat-option>
+              </mat-select>
+
+              <mat-error>Selecciona una categoría</mat-error>
+            </mat-form-field>
+
+          </div>
+
+          <div class="form-row">
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Estado del artículo</mat-label>
+
+              <mat-select formControlName="itemCondition">
+                <mat-option value="nuevo">✨ Nuevo</mat-option>
+                <mat-option value="buen estado">👍 Buen estado</mat-option>
+                <mat-option value="uso regular">🔄 Uso regular</mat-option>
+                <mat-option value="usado">🔄 Usado</mat-option>
+                <mat-option value="para reparar">🔧 Para reparar</mat-option>
+              </mat-select>
+
+              <mat-error>Selecciona el estado</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Zona de entrega</mat-label>
+
+              <mat-select formControlName="zone">
+                <mat-option *ngFor="let zone of zones" [value]="zone.name ?? zone.Name">
+                  📍 {{ zone.name ?? zone.Name }}
+                </mat-option>
+              </mat-select>
+
+              <mat-error>Selecciona una zona</mat-error>
+            </mat-form-field>
+
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Descripción</mat-label>
+
+            <textarea
+              matInput
+              formControlName="description"
+              rows="4"
+              placeholder="Describe el artículo, su estado y detalles importantes...">
+            </textarea>
+
+            <mat-icon matSuffix>notes</mat-icon>
+            <mat-error>Mínimo 10 caracteres</mat-error>
+          </mat-form-field>
+
+          <div class="form-actions">
+            <button
+              mat-raised-button
+              type="submit"
+              class="save-btn"
+              [disabled]="form.invalid || saving">
+
+              <mat-spinner *ngIf="saving" diameter="20"></mat-spinner>
+              <mat-icon *ngIf="!saving">save</mat-icon>
+              <span *ngIf="!saving">Guardar cambios</span>
+
+            </button>
+          </div>
+
+        </form>
+      </mat-card-content>
+
+    </mat-card>
+
+  </main>
+
+</div>

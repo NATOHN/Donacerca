@@ -1,0 +1,208 @@
+﻿<div class="receiver-layout">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-header">
+      <div class="brand-mark">
+        <img src="/logo-donacerca.png" alt="DonaCerca">
+      </div>
+
+      <span class="panel-badge">Panel Receptor</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="/receiver/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        <span>Dashboard</span>
+      </a>
+
+      <a routerLink="/receiver/browse" routerLinkActive="active">
+        <mat-icon>store</mat-icon>
+        <span>Ver catálogo</span>
+      </a>
+
+      <a routerLink="/receiver/my-requests" routerLinkActive="active">
+        <mat-icon>list_alt</mat-icon>
+        <span>Mis solicitudes</span>
+      </a>
+    </nav>
+
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Cerrar sesión</span>
+    </button>
+
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-hero">
+      <div>
+        <span class="eyebrow">Panel receptor</span>
+        <h1>¡Hola, {{ userName }}! </h1>
+        <p>Encuentra artículos disponibles y revisa el estado de tus solicitudes.</p>
+      </div>
+
+      <div class="header-actions">
+
+        <button mat-icon-button [matMenuTriggerFor]="notifMenu" class="bell-btn">
+          <mat-icon [matBadge]="unreadCount"
+                    matBadgeColor="warn"
+                    matBadgeSize="medium"
+                    [matBadgeHidden]="unreadCount === 0">
+            notifications
+          </mat-icon>
+        </button>
+
+        <a mat-raised-button class="primary-action" routerLink="/receiver/browse">
+          <mat-icon>search</mat-icon>
+          Buscar artículos
+        </a>
+
+      </div>
+    </section>
+
+    <mat-menu #notifMenu="matMenu" xPosition="before">
+      <div class="notif-header" (click)="$event.stopPropagation()">
+        <strong>Notificaciones</strong>
+        <span *ngIf="unreadCount > 0" class="unread-count">{{ unreadCount }} nuevas</span>
+      </div>
+
+      <div *ngIf="notifications.length === 0" class="notif-empty" (click)="$event.stopPropagation()">
+        Sin notificaciones
+      </div>
+
+      <div *ngFor="let n of notifications"
+           class="notif-item"
+           [class.unread]="!n.isRead && !n.IsRead"
+           (click)="markAsRead(n.id ?? n.Id); $event.stopPropagation()">
+
+        <mat-icon class="notif-icon">{{ getNotificationIcon(n.type ?? n.Type) }}</mat-icon>
+
+        <div class="notif-text">
+          <p>{{ n.message ?? n.Message }}</p>
+          <small>{{ (n.createdAt ?? n.CreatedAt) | date:'dd/MM/yyyy HH:mm' }}</small>
+        </div>
+      </div>
+    </mat-menu>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Cargando información...</p>
+    </div>
+
+    <div *ngIf="!loading">
+
+      <section class="stats-grid">
+
+        <mat-card class="stat-card available">
+          <div class="stat-icon">
+            <mat-icon>inventory_2</mat-icon>
+          </div>
+
+          <div>
+            <span class="stat-number">{{ statsAvailable }}</span>
+            <span class="stat-label">Disponibles</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card reserved">
+          <div class="stat-icon">
+            <mat-icon>bookmark</mat-icon>
+          </div>
+
+          <div>
+            <span class="stat-number">{{ statsReserved }}</span>
+            <span class="stat-label">Reservados</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card delivered">
+          <div class="stat-icon">
+            <mat-icon>volunteer_activism</mat-icon>
+          </div>
+
+          <div>
+            <span class="stat-number">{{ statsDelivered }}</span>
+            <span class="stat-label">Entregados</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card total-posts">
+          <div class="stat-icon">
+            <mat-icon>list_alt</mat-icon>
+          </div>
+
+          <div>
+            <span class="stat-number">{{ statsTotal }}</span>
+            <span class="stat-label">Total publicaciones</span>
+          </div>
+        </mat-card>
+
+      </section>
+
+      <mat-card class="recent-card">
+
+        <div class="section-heading">
+          <div>
+            <span>Actividad reciente</span>
+            <h2>Solicitudes recientes</h2>
+          </div>
+
+          <a mat-button class="link-action" routerLink="/receiver/my-requests">
+            Ver todas
+          </a>
+        </div>
+
+        <mat-card-content>
+
+          <div class="empty-state" *ngIf="requests.length === 0">
+            <div class="empty-icon">
+              <mat-icon>search</mat-icon>
+            </div>
+
+            <p>Aún no has solicitado ningún artículo</p>
+
+            <a mat-raised-button class="primary-action" routerLink="/receiver/browse">
+              Explorar catálogo
+            </a>
+          </div>
+
+          <div class="recent-list" *ngIf="requests.length > 0">
+
+            <a class="recent-item"
+               [routerLink]="['/receiver/my-requests']"
+               [queryParams]="{ highlight: req.id }"
+               *ngFor="let req of requests.slice(0, 5)">
+
+              <img *ngIf="postPhotos[req.postId]"
+                   [src]="postPhotos[req.postId]"
+                   class="recent-thumb"
+                   [alt]="postNames[req.postId]">
+
+              <div class="no-thumb" *ngIf="!postPhotos[req.postId]">
+                <mat-icon>image_not_supported</mat-icon>
+              </div>
+
+              <div class="recent-info">
+                <strong>{{ postNames[req.postId] || 'Cargando...' }}</strong>
+                <span>{{ req.requestTimestamp | date:'dd/MM/yyyy' }}</span>
+              </div>
+
+              <span class="status-chip" [class]="req.status">
+                {{ req.status | titlecase }}
+              </span>
+
+            </a>
+
+          </div>
+
+        </mat-card-content>
+
+      </mat-card>
+
+    </div>
+
+  </main>
+
+</div>

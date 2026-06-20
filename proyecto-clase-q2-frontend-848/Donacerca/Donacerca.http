@@ -1,0 +1,6 @@
+@Donacerca_HostAddress = http://localhost:5199
+
+GET {{Donacerca_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
