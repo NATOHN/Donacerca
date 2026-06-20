@@ -1,3 +1,28 @@
+# Compilación
 bin/
 obj/
+
+# Configuración con secretos (JWT, SendGrid, Firebase)
+appsettings.json
+appsettings.Development.json
+appsettings.*.json
+
+# Credenciales de Firebase
 **/Config/firebase-credentials.json
+**/firebase-credentials.json
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Variables de entorno
+.env
+.env.local
