@@ -1,0 +1,267 @@
+﻿<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🤝</span>
+      <h2>DonaCerca</h2>
+      <p>Panel Admin</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a routerLink="/admin/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </a>
+      <a routerLink="/admin/categories" routerLinkActive="active">
+        <mat-icon>category</mat-icon> Categorías
+      </a>
+      <a routerLink="/admin/moderation" routerLinkActive="active">
+        <mat-icon>manage_search</mat-icon> Moderación
+      </a>
+      <a routerLink="/admin/history" routerLinkActive="active">
+        <mat-icon>history</mat-icon> Historial
+      </a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1>Dashboard</h1>
+        <p>Bienvenido, {{ userName }}</p>
+      </div>
+    </div>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+
+    <div *ngIf="!loading && stats">
+
+      <!-- 1. Resumen general -->
+      <section class="section">
+        <h2 class="section-title">Total de publicaciones y donaciones</h2>
+        <div class="stats-grid">
+          <mat-card class="stat-card active">
+            <mat-icon>inventory_2</mat-icon>
+            <div>
+              <span class="stat-number">{{ stats.activePosts }}</span>
+              <span class="stat-label">Publicaciones activas</span>
+            </div>
+          </mat-card>
+          <mat-card class="stat-card completed">
+            <mat-icon>volunteer_activism</mat-icon>
+            <div>
+              <span class="stat-number">{{ stats.completedDonations }}</span>
+              <span class="stat-label">Donaciones completadas</span>
+            </div>
+          </mat-card>
+          <mat-card class="stat-card pending">
+            <mat-icon>pending_actions</mat-icon>
+            <div>
+              <span class="stat-number">{{ stats.pendingRequests }}</span>
+              <span class="stat-label">Solicitudes pendientes</span>
+            </div>
+          </mat-card>
+          <mat-card class="stat-card rate">
+            <mat-icon>trending_up</mat-icon>
+            <div>
+              <span class="stat-number">{{ stats.completionRate }}%</span>
+              <span class="stat-label">Tasa de completación</span>
+            </div>
+          </mat-card>
+        </div>
+      </section>
+
+      <!-- 2. Categorías más publicadas -->
+      <section class="section">
+        <h2 class="section-title">Categorías más publicadas</h2>
+        <mat-card class="table-card">
+          <mat-card-content>
+            <table class="data-table">
+              <thead>
+              <tr>
+                <th>#</th>
+                <th>Categoría</th>
+                <th>Artículos publicados</th>
+                <th>Popularidad</th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr *ngFor="let entry of getCategoryEntries(); let i = index">
+                <td>{{ i + 1 }}</td>
+                <td><strong>{{ entry.key }}</strong></td>
+                <td>{{ entry.value }}</td>
+                <td>
+                  <div class="mini-bar">
+                    <div class="mini-bar-fill"
+                         [style.width.%]="stats!.totalPosts > 0 ? (entry.value / stats!.totalPosts) * 100 : 0">
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="getCategoryEntries().length === 0">
+                <td colspan="4" class="empty">Sin datos</td>
+              </tr>
+              </tbody>
+            </table>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <!-- 3. Gráfico de barras por categoría -->
+      <section class="section">
+        <h2 class="section-title">Gráfico de barras por categoría</h2>
+        <mat-card class="chart-card">
+          <mat-card-content>
+            <canvas id="barChart"></canvas>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <!-- 4. Gráfico circular por estado -->
+      <section class="section">
+        <h2 class="section-title">Distribución por estado de publicación</h2>
+        <mat-card class="chart-card pie-card">
+          <mat-card-content>
+            <canvas id="pieChart"></canvas>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <!-- 5. Gráfico de tendencia temporal -->
+      <section class="section">
+        <h2 class="section-title">Tendencia temporal de donaciones completadas</h2>
+        <mat-card class="chart-card">
+          <mat-card-header>
+            <mat-select [(ngModel)]="trendPeriod"
+                        (selectionChange)="loadTrend()"
+                        class="period-select">
+              <mat-option value="week">Por semana</mat-option>
+              <mat-option value="month">Por mes</mat-option>
+            </mat-select>
+          </mat-card-header>
+          <mat-card-content>
+            <canvas id="trendChart"></canvas>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <!-- 6. Tabla filtrable -->
+      <section class="section">
+        <h2 class="section-title">Tabla de resultados filtrable</h2>
+        <mat-card class="filter-card">
+          <mat-card-content>
+
+            <!-- Filtros -->
+            <div class="filter-row">
+              <mat-form-field appearance="outline">
+                <mat-label>Categoría</mat-label>
+                <mat-select [(ngModel)]="filterCategory">
+                  <mat-option value="">Todas las categorías</mat-option>
+                  <mat-option *ngFor="let cat of categories" [value]="cat.id ?? cat.Id">
+                    {{ cat.name ?? cat.Name }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Zona</mat-label>
+                <mat-select [(ngModel)]="filterZone">
+                  <mat-option value="">Todas las zonas</mat-option>
+                  <mat-option *ngFor="let zone of zones" [value]="zone.name ?? zone.Name">
+                    {{ zone.name ?? zone.Name }}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Desde</mat-label>
+                <input matInput type="date" [(ngModel)]="filterFrom"/>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Hasta</mat-label>
+                <input matInput type="date" [(ngModel)]="filterTo"/>
+              </mat-form-field>
+
+              <button mat-raised-button color="primary" (click)="applyFilters()">
+                <mat-icon>search</mat-icon> Aplicar
+              </button>
+              <button mat-stroked-button (click)="clearFilters()">
+                <mat-icon>clear</mat-icon> Limpiar
+              </button>
+            </div>
+
+            <!-- Tags filtros activos -->
+            <div class="active-filters" *ngIf="filterCategory || filterZone || filterFrom || filterTo">
+              <span class="filter-tag" *ngIf="filterCategory">
+                <mat-icon>category</mat-icon> Categoría seleccionada
+              </span>
+              <span class="filter-tag" *ngIf="filterZone">
+                <mat-icon>location_on</mat-icon> {{ filterZone }}
+              </span>
+              <span class="filter-tag" *ngIf="filterFrom">
+                <mat-icon>date_range</mat-icon> Desde: {{ filterFrom }}
+              </span>
+              <span class="filter-tag" *ngIf="filterTo">
+                <mat-icon>date_range</mat-icon> Hasta: {{ filterTo }}
+              </span>
+            </div>
+
+            <!-- Tabla de resultados -->
+            <div class="filter-results">
+              <table class="result-table">
+                <thead>
+                <tr>
+                  <th>Total publicaciones</th>
+                  <th>Publicaciones activas</th>
+                  <th>Disponibles</th>
+                  <th>Entregados</th>
+                  <th>Reservados</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                  <td><strong>{{ stats.totalPosts }}</strong></td>
+                  <td><strong>{{ stats.activePosts }}</strong></td>
+                  <td><span class="badge disponible">{{ stats.byStatus['disponible'] || 0 }}</span></td>
+                  <td><span class="badge entregado">{{ stats.byStatus['entregado'] || 0 }}</span></td>
+                  <td><span class="badge reservado">{{ stats.byStatus['reservado'] || 0 }}</span></td>
+                </tr>
+                <tr *ngIf="stats.totalPosts === 0">
+                  <td colspan="5" class="empty">Sin resultados para los filtros seleccionados</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+      <!-- Acciones rápidas -->
+      <section class="section">
+        <mat-card class="quick-actions">
+          <mat-card-header>
+            <mat-card-title>Acciones rápidas</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="actions-grid">
+              <a mat-raised-button color="primary" routerLink="/admin/categories">
+                <mat-icon>category</mat-icon> Gestionar categorías
+              </a>
+              <a mat-raised-button color="accent" routerLink="/admin/moderation">
+                <mat-icon>manage_search</mat-icon> Moderar publicaciones
+              </a>
+              <a mat-raised-button routerLink="/admin/history">
+                <mat-icon>history</mat-icon> Ver historial
+              </a>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </section>
+
+    </div>
+  </main>
+</div>

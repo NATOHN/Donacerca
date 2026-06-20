@@ -1,0 +1,42 @@
+﻿.donor-layout { display: flex; min-height: 100vh; background: #f5f5f5; }
+
+.sidebar {
+  width: 240px; background: #1a1a2e; color: white;
+  display: flex; flex-direction: column;
+  position: fixed; height: 100vh; overflow-y: auto;
+}
+
+.sidebar-header { padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+.sidebar-header .logo { font-size: 36px; }
+.sidebar-header h2 { margin: 8px 0 4px; font-size: 18px; color: #e91e63; }
+.sidebar-header p { margin: 0; font-size: 12px; opacity: 0.6; }
+
+.sidebar-nav { flex: 1; padding: 16px 0; }
+.sidebar-nav a {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; color: rgba(255,255,255,0.7);
+  text-decoration: none; font-size: 14px; transition: all 0.2s;
+}
+.sidebar-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
+
+.main-content { flex: 1; margin-left: 240px; padding: 32px; }
+
+.page-header {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 28px;
+}
+.page-header h1 { margin: 0; font-size: 28px; }
+.page-header p { margin: 4px 0 0; color: #888; }
+
+.loading-center { display: flex; justify-content: center; padding: 60px; }
+
+.form-card { border-radius: 12px !important; max-width: 800px; }
+
+.form-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 16px; margin-bottom: 8px;
+}
+
+.full-width { width: 100%; }
+
+.form-actions { display: flex; justify-content: flex-end; margin-top: 16px; }

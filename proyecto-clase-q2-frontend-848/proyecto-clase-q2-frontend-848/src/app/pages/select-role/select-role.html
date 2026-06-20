@@ -1,0 +1,44 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<div class="container">
+  <mat-card class="card">
+
+    <div class="header">
+      <span class="logo">🤝</span>
+      <h1>DonaCerca</h1>
+      <p>¿Cómo quieres usar DonaCerca?</p>
+    </div>
+
+    <mat-card-content>
+      <div class="roles-grid">
+
+        <div class="role-card" (click)="selectRole('donor')" [class.disabled]="loading">
+          <span class="role-icon">🎁</span>
+          <h2>Soy Donante</h2>
+          <p>Quiero donar artículos que ya no uso a personas que los necesitan en mi comunidad.</p>
+          <button mat-raised-button color="primary" [disabled]="loading">
+            <mat-icon>volunteer_activism</mat-icon>
+            Quiero donar
+          </button>
+        </div>
+
+        <div class="role-card" (click)="selectRole('receiver')" [class.disabled]="loading">
+          <span class="role-icon">🙏</span>
+          <h2>Soy Receptor</h2>
+          <p>Quiero encontrar artículos donados que necesito en mi zona de San Pedro Sula.</p>
+          <button mat-raised-button color="accent" [disabled]="loading">
+            <mat-icon>search</mat-icon>
+            Quiero recibir
+          </button>
+        </div>
+
+      </div>
+
+      <div class="loading-center" *ngIf="loading">
+        <p>Configurando tu cuenta...</p>
+      </div>
+    </mat-card-content>
+
+  </mat-card>
+</div>
+</html>

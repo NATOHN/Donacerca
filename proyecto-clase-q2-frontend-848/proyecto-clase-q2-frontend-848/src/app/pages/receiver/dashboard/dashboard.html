@@ -1,0 +1,148 @@
+﻿<div class="receiver-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🙏</span>
+      <h2>DonaCerca</h2>
+      <p>Panel Receptor</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a routerLink="/receiver/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </a>
+      <a routerLink="/receiver/browse" routerLinkActive="active">
+        <mat-icon>store</mat-icon> Ver catálogo
+      </a>
+      <a routerLink="/receiver/my-requests" routerLinkActive="active">
+        <mat-icon>list_alt</mat-icon> Mis solicitudes
+      </a>
+    </nav>
+    <button class="logout-btn" (click)="logout()">
+      <mat-icon>logout</mat-icon> Cerrar sesión
+    </button>
+  </aside>
+
+  <main class="main-content">
+
+    <div class="page-header">
+      <div>
+        <h1>¡Hola, {{ userName }}! 👋</h1>
+        <p>Encuentra artículos que necesitas en tu comunidad</p>
+      </div>
+      <div class="header-actions">
+
+        <!-- Campana de notificaciones igual al donante -->
+        <button mat-icon-button [matMenuTriggerFor]="notifMenu" class="bell-btn">
+          <mat-icon matBadge="{{ unreadCount }}"
+                    matBadgeColor="warn"
+                    matBadgeSize="small"
+                    [matBadgeHidden]="unreadCount === 0">
+            notifications
+          </mat-icon>
+        </button>
+
+        <mat-menu #notifMenu="matMenu" xPosition="before">
+          <div class="notif-header" (click)="$event.stopPropagation()">
+            <strong>Notificaciones</strong>
+            <span *ngIf="unreadCount > 0" class="unread-count">{{ unreadCount }} nuevas</span>
+          </div>
+          <div *ngIf="notifications.length === 0" class="notif-empty" (click)="$event.stopPropagation()">
+            Sin notificaciones
+          </div>
+          <div *ngFor="let n of notifications"
+               class="notif-item"
+               [class.unread]="!n.isRead && !n.IsRead"
+               (click)="markAsRead(n.id ?? n.Id); $event.stopPropagation()">
+            <mat-icon class="notif-icon">{{ getNotificationIcon(n.type ?? n.Type) }}</mat-icon>
+            <div class="notif-text">
+              <p>{{ n.message ?? n.Message }}</p>
+              <small>{{ (n.createdAt ?? n.CreatedAt) | date:'dd/MM/yyyy HH:mm' }}</small>
+            </div>
+          </div>
+        </mat-menu>
+
+        <a mat-raised-button color="primary" routerLink="/receiver/browse">
+          <mat-icon>search</mat-icon> Buscar artículos
+        </a>
+      </div>
+    </div>
+
+    <div class="loading-center" *ngIf="loading">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+
+    <div *ngIf="!loading">
+
+      <!-- Stats basadas en MIS solicitudes enviadas -->
+      <div class="stats-grid">
+        <mat-card class="stat-card pending">
+          <mat-icon>pending_actions</mat-icon>
+          <div>
+            <span class="stat-number">{{ pendingRequests }}</span>
+            <span class="stat-label">Solicitudes pendientes</span>
+          </div>
+        </mat-card>
+        <mat-card class="stat-card accepted">
+          <mat-icon>check_circle</mat-icon>
+          <div>
+            <span class="stat-number">{{ acceptedRequests }}</span>
+            <span class="stat-label">Solicitudes aceptadas</span>
+          </div>
+        </mat-card>
+        <mat-card class="stat-card delivered">
+          <mat-icon>volunteer_activism</mat-icon>
+          <div>
+            <span class="stat-number">{{ deliveredRequests }}</span>
+            <span class="stat-label">Entregadas</span>
+          </div>
+        </mat-card>
+        <mat-card class="stat-card total-posts">
+          <mat-icon>list_alt</mat-icon>
+          <div>
+            <span class="stat-number">{{ totalRequests }}</span>
+            <span class="stat-label">Total solicitudes</span>
+          </div>
+        </mat-card>
+      </div>
+
+      <!-- Solicitudes recientes -->
+      <mat-card class="recent-card">
+        <mat-card-header>
+          <mat-card-title>Solicitudes recientes</mat-card-title>
+          <a mat-button color="primary" routerLink="/receiver/my-requests">Ver todas</a>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="empty-state" *ngIf="requests.length === 0">
+            <span>🔍</span>
+            <p>Aún no has solicitado ningún artículo</p>
+            <a mat-raised-button color="primary" routerLink="/receiver/browse">
+              Explorar catálogo
+            </a>
+          </div>
+          <div class="recent-list" *ngIf="requests.length > 0">
+            <a class="recent-item"
+               [routerLink]="['/receiver/my-requests']"
+               [queryParams]="{ highlight: req.id }"
+               *ngFor="let req of requests.slice(0, 5)">
+              <img *ngIf="postPhotos[req.postId]"
+                   [src]="postPhotos[req.postId]"
+                   class="recent-thumb"
+                   [alt]="postNames[req.postId]"/>
+              <div class="no-thumb" *ngIf="!postPhotos[req.postId]">
+                <mat-icon>image_not_supported</mat-icon>
+              </div>
+              <div class="recent-info">
+                <strong>{{ postNames[req.postId] || 'Cargando...' }}</strong>
+                <span>{{ req.requestTimestamp | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <span class="status-chip" [class]="req.status">
+                {{ req.status | titlecase }}
+              </span>
+            </a>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+  </main>
+</div>

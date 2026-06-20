@@ -1,0 +1,70 @@
+﻿.donor-layout { display: flex; min-height: 100vh; background: #f5f5f5; }
+
+.sidebar {
+  width: 240px; background: #1a1a2e; color: white;
+  display: flex; flex-direction: column;
+  position: fixed; height: 100vh;
+}
+
+.sidebar-header { padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+.sidebar-header .logo { font-size: 36px; }
+.sidebar-header h2 { margin: 8px 0 4px; font-size: 18px; color: #e91e63; }
+.sidebar-header p { margin: 0; font-size: 12px; opacity: 0.6; }
+
+.sidebar-nav { flex: 1; padding: 16px 0; }
+.sidebar-nav a {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; color: rgba(255,255,255,0.7);
+  text-decoration: none; font-size: 14px; transition: all 0.2s;
+}
+.sidebar-nav a:hover { background: rgba(255,255,255,0.1); color: white; }
+.sidebar-nav a.active { background: #e91e63; color: white; }
+
+.logout-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 16px 20px; background: none; border: none;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6); cursor: pointer;
+  font-size: 14px; width: 100%;
+}
+.logout-btn:hover { color: #e91e63; }
+
+.main-content { flex: 1; margin-left: 240px; padding: 32px; max-width: 700px; }
+
+.page-header {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 28px;
+}
+.page-header h1 { margin: 0; font-size: 28px; }
+.page-header p { margin: 4px 0 0; color: #888; }
+
+.delivery-stepper { background: transparent !important; }
+
+.step-card { border-radius: 12px !important; margin: 12px 0; }
+.full-width { width: 100%; margin-bottom: 12px; }
+
+.zone-address {
+  display: flex; align-items: center; gap: 8px;
+  background: #e3f2fd; color: #1565c0;
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 13px; margin-bottom: 16px;
+}
+
+.step-btn { height: 44px; margin-top: 8px; }
+.step-btn mat-icon { margin-right: 8px; }
+
+.step-done {
+  display: flex; align-items: center; gap: 8px;
+  color: #2e7d32; font-size: 15px; font-weight: 500;
+  padding: 12px 0;
+}
+.step-done mat-icon { color: #4caf50; }
+
+.waiting-receiver {
+  text-align: center; padding: 24px;
+  color: #666;
+}
+.waiting-receiver mat-icon {
+  font-size: 48px; width: 48px; height: 48px;
+  color: #ff9800; display: block; margin: 0 auto 12px;
+}
